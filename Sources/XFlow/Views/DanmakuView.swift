@@ -194,7 +194,8 @@ struct DanmakuCellView: View {
             // Open Tweet Button (Visible on Hover)
             if isHovering {
                 Button(action: {
-                    if let url = URL(string: "https://twitter.com/i/web/status/\(item.tweet.id)") {
+                    let username = item.tweet.authorUsername ?? "i"
+                    if let url = URL(string: "https://x.com/\(username)/status/\(item.tweet.id)") {
                         NSWorkspace.shared.open(url)
                     }
                 }) {
@@ -223,7 +224,8 @@ struct DanmakuCellView: View {
         }
         .onTapGesture {
             // Open tweet in browser
-            if let url = URL(string: "https://twitter.com/i/web/status/\(item.tweet.id)") {
+            let username = item.tweet.authorUsername ?? "i"
+            if let url = URL(string: "https://x.com/\(username)/status/\(item.tweet.id)") {
                 NSWorkspace.shared.open(url)
             }
         }
