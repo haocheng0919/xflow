@@ -1,4 +1,6 @@
 # XFlow
+[中文](README_zh.md)
+
 
 **Immersive information flow for your desktop.**
 

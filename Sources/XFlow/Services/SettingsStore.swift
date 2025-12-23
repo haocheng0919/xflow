@@ -6,7 +6,9 @@ class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     
     // API Keys - using AppStorage to avoid Keychain password prompts
-    @AppStorage("rapidApiKey") var rapidApiKey: String = ""
+    @Published var rapidApiKey: String {
+        didSet { UserDefaults.standard.set(rapidApiKey, forKey: "rapidApiKey") }
+    }
     @AppStorage("bearerToken") var bearerToken: String = ""
     
     @AppStorage("danmakuSpeed") var speed: Double = 3.0
@@ -18,10 +20,15 @@ class SettingsStore: ObservableObject {
     @AppStorage("isCryptoEnabled") var isCryptoEnabled: Bool = false
     @AppStorage("selectedDex") var selectedDex: String = "GMGN"
     @AppStorage("maxItemWidth") var maxItemWidth: Double = 400.0
+    @AppStorage("tweetLimit") var tweetLimit: Int = 20
     
     // Update Frequency
-    @AppStorage("updateInterval") var updateInterval: Double = 30.0
-    @AppStorage("updateUnit") var updateUnit: String = "s" // s, m, h
+    @Published var updateInterval: Double {
+        didSet { UserDefaults.standard.set(updateInterval, forKey: "updateInterval") }
+    }
+    @Published var updateUnit: String { // s, m, h
+        didSet { UserDefaults.standard.set(updateUnit, forKey: "updateUnit") }
+    }
     
     var updateIntervalSeconds: TimeInterval {
         switch updateUnit {
@@ -38,6 +45,11 @@ class SettingsStore: ObservableObject {
     @AppStorage("searchQuery") var searchQuery: String = ""
     
     private init() {
+        let interval = UserDefaults.standard.double(forKey: "updateInterval")
+        self.updateInterval = interval == 0 ? 30.0 : interval
+        self.updateUnit = UserDefaults.standard.string(forKey: "updateUnit") ?? "s"
+        self.rapidApiKey = UserDefaults.standard.string(forKey: "rapidApiKey") ?? ""
+        
         // Load from environment if available
         if let envToken = ProcessInfo.processInfo.environment["BEARER_TOKEN"], !envToken.isEmpty {
             if bearerToken.isEmpty {

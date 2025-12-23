@@ -84,23 +84,29 @@ struct StatusCard: View {
             Divider()
             
             // Update Frequency
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Update Frequency")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                HStack {
-                    TextField("Interval", value: $settings.updateInterval, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 60)
-                    Picker("", selection: $settings.updateUnit) {
-                        Text("s").tag("s")
-                        Text("m").tag("m")
-                        Text("h").tag("h")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Update Frequency")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    HStack {
+                        AppKitTextField(placeholder: "Interval", text: Binding(
+                            get: { String(settings.updateInterval) },
+                            set: { 
+                                if let value = Double($0) {
+                                    settings.updateInterval = value
+                                }
+                            }
+                        ))
+                            .frame(width: 60, height: 22)
+                        Picker("", selection: $settings.updateUnit) {
+                            Text("s").tag("s")
+                            Text("m").tag("m")
+                            Text("h").tag("h")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 120)
                     }
-                    .pickerStyle(.segmented)
-                    .frame(width: 120)
                 }
-            }
         }
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
@@ -141,6 +147,33 @@ struct VisualsCard: View {
                     Text("Max Width")
                         .font(.caption)
                     Slider(value: $settings.maxItemWidth, in: 100...800)
+                }
+                
+                HStack {
+                    Text("Tweet Limit")
+                        .font(.caption)
+                    Slider(value: Binding(
+                        get: { Double(settings.tweetLimit) },
+                        set: { settings.tweetLimit = Int($0) }
+                    ), in: 0...50, step: 1)
+                    Text("\(settings.tweetLimit)")
+                        .font(.caption2)
+                        .frame(width: 20)
+                }
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Display Zones")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    HStack {
+                        Toggle("Top", isOn: $settings.showTop)
+                        Toggle("Mid", isOn: $settings.showMiddle)
+                        Toggle("Bot", isOn: $settings.showBottom)
+                    }
+                    .toggleStyle(.button)
+                    .controlSize(.small)
                 }
             }
         }
@@ -201,8 +234,11 @@ struct SourcesCard: View {
                         Text("RapidAPI Key")
                             .font(.caption)
                             .foregroundColor(.gray)
-                        SecureField("API Key", text: $settings.rapidApiKey)
-                            .textFieldStyle(.roundedBorder)
+                        AppKitSecureField(placeholder: "API Key", text: $settings.rapidApiKey) {
+                        }
+                        .frame(height: 22)
+                        .onChange(of: settings.rapidApiKey) { oldValue, newValue in
+                        }
                     }
                     
                     // User Handles
@@ -216,8 +252,10 @@ struct SourcesCard: View {
                                 .font(.caption2)
                                 .foregroundColor(.orange)
                         }
-                        TextField("@user1, @user2, @user3", text: $settings.userHandles)
-                            .textFieldStyle(.roundedBorder)
+                        AppKitTextField(placeholder: "@user1, @user2, @user3", text: $settings.userHandles)
+                            .frame(height: 22)
+                            .onChange(of: settings.userHandles) { oldValue, newValue in
+                            }
                         Text("Comma-separated user handles")
                             .font(.caption2)
                             .foregroundColor(.gray)
@@ -234,8 +272,8 @@ struct SourcesCard: View {
                                 .font(.caption2)
                                 .foregroundColor(.orange)
                         }
-                        TextField("list_id1, list_id2", text: $settings.twitterLists)
-                            .textFieldStyle(.roundedBorder)
+                        AppKitTextField(placeholder: "list_id1, list_id2", text: $settings.twitterLists)
+                            .frame(height: 22)
                         Text("Not yet supported by API")
                             .font(.caption2)
                             .foregroundColor(.gray)
@@ -252,8 +290,8 @@ struct SourcesCard: View {
                                 .font(.caption2)
                                 .foregroundColor(.orange)
                         }
-                        TextField("comm_id1, comm_id2", text: $settings.communities)
-                            .textFieldStyle(.roundedBorder)
+                        AppKitTextField(placeholder: "comm_id1, comm_id2", text: $settings.communities)
+                            .frame(height: 22)
                         Text("Not yet supported by API")
                             .font(.caption2)
                             .foregroundColor(.gray)
@@ -264,8 +302,10 @@ struct SourcesCard: View {
                         Text("Search Query")
                             .font(.caption)
                             .foregroundColor(.gray)
-                        TextField("#crypto, bitcoin, etc.", text: $settings.searchQuery)
-                            .textFieldStyle(.roundedBorder)
+                        AppKitTextField(placeholder: "#crypto, bitcoin, etc.", text: $settings.searchQuery)
+                            .frame(height: 22)
+                            .onChange(of: settings.searchQuery) { oldValue, newValue in
+                            }
                     }
                 }
             }

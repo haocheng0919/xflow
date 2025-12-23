@@ -27,27 +27,17 @@ struct XFlowApp: App {
                 }
             }
         } catch {
-            print("Failed to load .env: \(error)")
+            // Error loading .env
         }
     }
     
     var body: some Scene {
-        // 1. The Dashboard Window
-        Window("XFlow Dashboard", id: "dashboard") {
-            DashboardView()
-                .onAppear {
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-        }
-        .windowResizability(.contentSize)
-        .defaultSize(width: 650, height: 500)
-        
-        // 2. The Menu Bar Extra
+        // 1. The Menu Bar Extra
         MenuBarExtra("XFlow", systemImage: "wind") {
             MenuBarContent()
         }
         
-        // 3. Settings (Preferences)
+        // 2. Settings (Preferences)
         Settings {
             DashboardView()
         }
@@ -55,7 +45,6 @@ struct XFlowApp: App {
 }
 
 struct MenuBarContent: View {
-    @SwiftUI.Environment(\.openWindow) var openWindow
     @ObservedObject var twitterService = TwitterService.shared
     
     var body: some View {
@@ -69,20 +58,16 @@ struct MenuBarContent: View {
         
         Divider()
         
+        // ============================================================
+        // IMPORTANT: Dashboard Button - Brings Dashboard Window to Front
+        // DO NOT MODIFY THIS LOGIC - It ensures proper window activation
+        // ============================================================
         Button("Dashboard") {
-            openWindow(id: "dashboard")
-            
-            // Activate and bring Dashboard to front
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                NSApplication.shared.activate(ignoringOtherApps: true)
-                
-                for window in NSApplication.shared.windows {
-                    if window.title == "XFlow Dashboard" || window.identifier?.rawValue == "dashboard" {
-                        window.level = .floating
-                        window.makeKeyAndOrderFront(nil)
-                        window.orderFrontRegardless()
-                        break
-                    }
+            // Use async dispatch to ensure menu closes before window activation
+            // This is required because MenuBarExtra steals focus when closing
+            DispatchQueue.main.async {
+                if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
+                    appDelegate.showDashboard()
                 }
             }
         }

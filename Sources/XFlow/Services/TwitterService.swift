@@ -13,23 +13,37 @@ class TwitterService: ObservableObject {
     
     private var client: Twift?
     private var timer: Timer?
+    private var cancellables = Set<AnyCancellable>()
     
-    // Configuration
-    @Published var searchQuery: String = "@mock" {
-        didSet {
-            if searchQuery != oldValue {
-                resolvedUserId = nil // Reset cache on change
-            }
-        }
-    }
-    
-    private var resolvedUserId: String?
     
     private init() {
         // Initialize if token exists
         let token = SettingsStore.shared.bearerToken
         if !token.isEmpty {
             self.client = Twift(appOnlyBearerToken: token)
+        }
+        
+        // Observe settings changes to restart polling if necessary
+        SettingsStore.shared.$updateInterval
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.handleSettingsChange() }
+            .store(in: &cancellables)
+            
+        SettingsStore.shared.$updateUnit
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.handleSettingsChange() }
+            .store(in: &cancellables)
+            
+        SettingsStore.shared.$rapidApiKey
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.handleSettingsChange() }
+            .store(in: &cancellables)
+    }
+    
+    private func handleSettingsChange() {
+        if isRunning {
+            stopPolling()
+            startPolling()
         }
     }
     
@@ -103,7 +117,7 @@ class TwitterService: ObservableObject {
                 if useRapidAPI {
                     // RapidAPI Path
                     let userId = try await RapidAPIService.shared.getUserID(username: username, apiKey: rapidKey)
-                    let tweets = try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey)
+                    let tweets = try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey, count: settings.tweetLimit)
                     allNewTweets.append(contentsOf: tweets)
                 } else {
                     // Twift Path
@@ -142,7 +156,7 @@ class TwitterService: ObservableObject {
             // 2. Fetch from Search Query
             if !searchQuery.isEmpty {
                 if useRapidAPI {
-                    let tweets = try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey)
+                    let tweets = try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: settings.tweetLimit)
                     allNewTweets.append(contentsOf: tweets)
                 } else {
                     guard let client = client else {
@@ -182,7 +196,7 @@ class TwitterService: ObservableObject {
                     .filter { !$0.isEmpty }
                 
                 for listId in listIds {
-                    let tweets = try await RapidAPIService.shared.getListTimeline(listId: listId, apiKey: rapidKey)
+                    let tweets = try await RapidAPIService.shared.getListTimeline(listId: listId, apiKey: rapidKey, count: settings.tweetLimit)
                     allNewTweets.append(contentsOf: tweets)
                 }
             }
@@ -195,7 +209,7 @@ class TwitterService: ObservableObject {
                     .filter { !$0.isEmpty }
                 
                 for communityId in communityIds {
-                    let tweets = try await RapidAPIService.shared.getCommunityTimeline(topicId: communityId, apiKey: rapidKey)
+                    let tweets = try await RapidAPIService.shared.getCommunityTimeline(topicId: communityId, apiKey: rapidKey, count: settings.tweetLimit)
                     allNewTweets.append(contentsOf: tweets)
                 }
             }
@@ -206,12 +220,14 @@ class TwitterService: ObservableObject {
             }
             
             if !uniqueNewTweets.isEmpty {
-                print("Fetched \(uniqueNewTweets.count) new tweets")
-                self.tweets.append(contentsOf: uniqueNewTweets)
+                // Sort by creation date before appending (oldest first for danmaku queueing)
+                let sortedTweets = uniqueNewTweets.sorted { 
+                    ($0.createdAt ?? Date.distantPast) < ($1.createdAt ?? Date.distantPast)
+                }
+                self.tweets.append(contentsOf: sortedTweets)
             }
             
         } catch {
-            print("Error fetching tweets: \(error)")
             self.errorMessage = error.localizedDescription
         }
     }

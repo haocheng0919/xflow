@@ -5,9 +5,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var overlayWindow: OverlayWindow!
     var hostingView: NSHostingView<ContentView>!
     var updateTimer: Timer?
+    var dashboardController: DashboardWindowController?
 
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Change to .regular to ensure it behaves like a normal Mac app with focus
+        NSApp.setActivationPolicy(.regular)
+        
         let screenRect = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         
         overlayWindow = OverlayWindow(
@@ -25,6 +29,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         overlayWindow.contentView = hostingView
         overlayWindow.orderFront(nil)
+        
+        // Create dashboard controller immediately
+        dashboardController = DashboardWindowController()
         
         // Show Dashboard on launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -50,6 +57,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @MainActor
     private func checkMousePosition() {
+        // Check if Dashboard is currently the key window OR visible
+        if let dashboardWindow = dashboardController?.window {
+            if dashboardWindow.isKeyWindow || dashboardWindow.isVisible {
+                // Dashboard is active or visible, ensure overlay doesn't interfere
+                overlayWindow.ignoresMouseEvents = true
+                return
+            }
+        }
+        
         // If Dashboard is visible, we generally want to be careful, but since Dashboard is .floating (Level 3)
         // and Overlay is Desktop (Level 1), Dashboard will capture clicks if mouse is over it.
         // So we just need to check if mouse is over a danmaku item.
@@ -90,17 +106,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
     
+    // ============================================================
+    // showDashboard - Entry Point for Showing Dashboard
+    // ============================================================
+    // Called from: MenuBarContent "Dashboard" button
+    // DO NOT MODIFY - This ensures Dashboard can be activated from menu bar
+    // ============================================================
     @MainActor
     func showDashboard() {
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        guard let dashboardController = dashboardController else { return }
         
-        for window in NSApplication.shared.windows {
-            if window.title == "XFlow Dashboard" || window.identifier?.rawValue == "dashboard" {
-                window.level = .floating
-                window.makeKeyAndOrderFront(nil)
-                window.orderFrontRegardless()
-                break
-            }
-        }
+        // Ensure overlay doesn't interfere with dashboard input
+        overlayWindow.ignoresMouseEvents = true
+        
+        // Show the dashboard window (handles activation and focus)
+        dashboardController.showWindow(nil)
     }
 }

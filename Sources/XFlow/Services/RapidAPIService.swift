@@ -40,7 +40,7 @@ actor RapidAPIService {
     
     // MARK: - Timeline
     
-    func getUserTweets(userId: String, apiKey: String) async throws -> [XFlowTweet] {
+    func getUserTweets(userId: String, apiKey: String, count: Int = 20) async throws -> [XFlowTweet] {
         // Check if we should use local mock data
         if apiKey == "MOCK_MODE" {
             return try await loadLocalTweets()
@@ -49,7 +49,7 @@ actor RapidAPIService {
         var components = URLComponents(string: "https://\(host)/user-tweets")!
         components.queryItems = [
             URLQueryItem(name: "user", value: userId),
-            URLQueryItem(name: "count", value: "20")
+            URLQueryItem(name: "count", value: "\(count)")
         ]
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
@@ -108,9 +108,12 @@ actor RapidAPIService {
         }
 
         let legacy = tweetData.legacy
-        let userLegacy = tweetData.core.user_results.result.legacy
+        let userResult = tweetData.core.user_results.result
+        let userLegacy = userResult.legacy
+        let userCore = userResult.core
         
-        // Date Format: "Tue Jun 02 20:12:29 +0000 2009"
+        let authorName = userCore?.name ?? userLegacy?.name ?? "Unknown"
+        let authorUsername = userCore?.screen_name ?? userLegacy?.screen_name ?? "unknown"
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE MMM dd HH:mm:ss Z yyyy"
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -119,8 +122,8 @@ actor RapidAPIService {
         return XFlowTweet(
             id: legacy.id_str,
             text: legacy.full_text,
-            authorName: userLegacy?.name ?? "Unknown",
-            authorUsername: userLegacy?.screen_name ?? "unknown",
+            authorName: authorName,
+            authorUsername: authorUsername,
             authorProfileImageUrl: userLegacy?.profile_image_url_https,
             createdAt: date
         )
@@ -178,9 +181,12 @@ actor RapidAPIService {
     
     // MARK: - List Timeline
     
-    func getListTimeline(listId: String, apiKey: String) async throws -> [XFlowTweet] {
+    func getListTimeline(listId: String, apiKey: String, count: Int = 20) async throws -> [XFlowTweet] {
         var components = URLComponents(string: "https://\(host)/list-timeline")!
-        components.queryItems = [URLQueryItem(name: "listId", value: listId)]
+        components.queryItems = [
+            URLQueryItem(name: "listId", value: listId),
+            URLQueryItem(name: "count", value: "\(count)")
+        ]
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
@@ -195,9 +201,12 @@ actor RapidAPIService {
     
     // MARK: - Community Timeline
     
-    func getCommunityTimeline(topicId: String, apiKey: String) async throws -> [XFlowTweet] {
+    func getCommunityTimeline(topicId: String, apiKey: String, count: Int = 20) async throws -> [XFlowTweet] {
         var components = URLComponents(string: "https://\(host)/explore-community-timeline")!
-        components.queryItems = [URLQueryItem(name: "topicId", value: topicId)]
+        components.queryItems = [
+            URLQueryItem(name: "topicId", value: topicId),
+            URLQueryItem(name: "count", value: "\(count)")
+        ]
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
@@ -295,4 +304,9 @@ struct UserResult: Decodable {
     let __typename: String
     let rest_id: String?
     let legacy: UserLegacy?
+    let core: UserCore?
+}
+struct UserCore: Decodable {
+    let name: String?
+    let screen_name: String?
 }
