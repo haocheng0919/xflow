@@ -104,6 +104,9 @@ actor RapidAPIService {
     private func convert(result: TweetResult) -> XFlowTweet? {
         // Filter by __typename to ensure it's a real Tweet
         guard result.__typename == "Tweet" else { return nil }
+        
+        // Strict ad filtering
+        if result.promotedMetadata != nil { return nil }
 
         // Handle both direct Tweet and TweetWithVisibilityResults
         let tweetData: TweetData
@@ -293,6 +296,11 @@ struct TweetResult: Decodable {
     let core: TweetCore?
     // For TweetWithVisibilityResults
     let tweet: VisibilityTweet?
+    // Advanced ad detection
+    let promotedMetadata: PromotedMetadata?
+}
+struct PromotedMetadata: Decodable {
+    let advertiserId: String?
 }
 struct VisibilityTweet: Decodable {
     let legacy: TweetLegacy

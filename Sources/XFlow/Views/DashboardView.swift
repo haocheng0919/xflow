@@ -150,13 +150,13 @@ struct VisualsCard: View {
                 }
                 
                 HStack {
-                    Text("Tweet Limit")
+                    Text("Initial Count")
                         .font(.caption)
                     Slider(value: Binding(
-                        get: { Double(settings.tweetLimit) },
-                        set: { settings.tweetLimit = Int($0) }
+                        get: { Double(settings.initialCount) },
+                        set: { settings.initialCount = Int($0) }
                     ), in: 0...50, step: 1)
-                    Text("\(settings.tweetLimit)")
+                    Text("\(settings.initialCount)")
                         .font(.caption2)
                         .frame(width: 20)
                 }

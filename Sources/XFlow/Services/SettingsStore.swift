@@ -20,7 +20,7 @@ class SettingsStore: ObservableObject {
     @AppStorage("isCryptoEnabled") var isCryptoEnabled: Bool = false
     @AppStorage("selectedDex") var selectedDex: String = "GMGN"
     @AppStorage("maxItemWidth") var maxItemWidth: Double = 400.0
-    @AppStorage("tweetLimit") var tweetLimit: Int = 20
+    @AppStorage("initialCount") var initialCount: Int = 20
     
     // Update Frequency
     @Published var updateInterval: Double {
