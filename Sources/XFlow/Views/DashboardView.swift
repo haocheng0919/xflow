@@ -334,9 +334,16 @@ struct HistoryCard: View {
             
             List(service.tweets.prefix(20)) { tweet in
                 HStack(alignment: .top) {
-                    Text(tweet.authorUsername ?? "Anon")
-                        .font(.caption)
-                        .bold()
+                    VStack(alignment: .leading) {
+                        Text(tweet.authorUsername ?? "Anon")
+                            .font(.caption)
+                            .bold()
+                        Text(tweet.relativeTimestamp)
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 80, alignment: .leading)
+                    
                     Text(tweet.text)
                         .font(.caption)
                         .lineLimit(2)

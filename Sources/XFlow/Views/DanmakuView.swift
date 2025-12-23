@@ -148,16 +148,24 @@ struct DanmakuCellView: View {
                 .clipShape(Circle())
             }
             
-            Text(item.tweet.authorUsername ?? "User")
-                .font(.system(size: settings.fontSize * 0.8, weight: .bold))
-                .foregroundColor(.white.opacity(0.8))
-            
-            Text(item.tweet.text)
-                .font(.system(size: settings.fontSize, weight: .medium))
-                .foregroundColor(.white)
-                .lineLimit(isHovering ? nil : 1)
-                .frame(maxWidth: isHovering ? 500 : settings.maxItemWidth, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: isHovering)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    Text(item.tweet.authorUsername ?? "User")
+                        .font(.system(size: settings.fontSize * 0.7, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Text(item.tweet.relativeTimestamp)
+                        .font(.system(size: settings.fontSize * 0.5))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                
+                Text(item.tweet.text)
+                    .font(.system(size: settings.fontSize, weight: .medium))
+                    .foregroundColor(.white)
+                    .lineLimit(isHovering ? nil : 1)
+                    .frame(maxWidth: isHovering ? 500 : settings.maxItemWidth, alignment: .leading)
+                    .fixedSize(horizontal: !isHovering, vertical: isHovering)
+            }
             
             // Web3 Logo Injection
             if settings.isCryptoEnabled && !item.cryptoAddresses.isEmpty {

@@ -78,6 +78,11 @@ actor RapidAPIService {
         for instruction in instructions {
             if let entries = instruction.entries {
                 for entry in entries {
+                    // Filter out promoted tweets (entryId starts with "promoted-")
+                    if let entryId = entry.entryId, entryId.hasPrefix("promoted-") {
+                        continue
+                    }
+                    
                     if let result = entry.content.itemContent?.tweet_results?.result {
                          if let tweet = convert(result: result) {
                              tweets.append(tweet)
@@ -97,6 +102,9 @@ actor RapidAPIService {
     }
     
     private func convert(result: TweetResult) -> XFlowTweet? {
+        // Filter by __typename to ensure it's a real Tweet
+        guard result.__typename == "Tweet" else { return nil }
+
         // Handle both direct Tweet and TweetWithVisibilityResults
         let tweetData: TweetData
         if let directTweet = result.legacy, let directCore = result.core {
@@ -266,6 +274,7 @@ struct Instruction: Decodable {
     let entry: Entry? // For TimelinePinEntry
 }
 struct Entry: Decodable {
+    let entryId: String?
     let content: EntryContent
 }
 struct EntryContent: Decodable {

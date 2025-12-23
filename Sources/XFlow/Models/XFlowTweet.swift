@@ -32,4 +32,20 @@ struct XFlowTweet: Identifiable, Equatable {
         }
         self.createdAt = createdAt
     }
+    
+    var relativeTimestamp: String {
+        guard let createdAt = createdAt else { return "" }
+        let now = Date()
+        let diff = Int(now.timeIntervalSince(createdAt))
+        
+        if diff < 60 {
+            return "\(max(1, diff))s"
+        } else if diff < 3600 {
+            return "\(diff / 60)m"
+        } else if diff < 86400 {
+            return "\(diff / 3600)h"
+        } else {
+            return "\(diff / 86400)d"
+        }
+    }
 }
