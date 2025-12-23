@@ -12,6 +12,7 @@ class TwitterService: ObservableObject {
     @Published var errorMessage: String?
     
     private var client: Twift?
+    private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
     
     // Per-source last fetched ID to ensure incremental updates
@@ -92,18 +93,6 @@ class TwitterService: ObservableObject {
     
     private func fetchTweets() async {
         let settings = SettingsStore.shared
-        let rapidKey = settings.rapidApiKey
-        let useRapidAPI = !rapidKey.isEmpty
-        
-        var allNewTweets: [XFlowTweet] = []
-        
-        // Parse multi-source inputs
-        let userHandles = settings.userHandles
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        
-        let searchQuery = settings.searchQuery.trimmingCharacters(in: .whitespaces)
         
         do {
             let allNewTweets = try await fetchSourceTweets(settings: settings)
