@@ -103,7 +103,3 @@ XFlow 支持两种数据源，请在 **仪表盘 (Dashboard)** 中配置。
 *   **Vanity 支持**: 完美支持各类 Solana 地址格式（如以 `pump` 结尾的地址）。
 
 <br/>
-
-<div align="center">
-  <p>Built with ❤️ by Haocheng</p>
-</div>
