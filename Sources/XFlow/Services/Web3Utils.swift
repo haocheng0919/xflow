@@ -17,8 +17,8 @@ class Web3Utils {
     static let shared = Web3Utils()
     
     // Regex Patterns
-    private let solanaPattern = "[1-9A-HJ-NP-Za-km-z]{32,44}"
-    private let evmPattern = "0x[a-fA-F0-9]{40}"
+    private let solanaPattern = "\\b[1-9A-HJ-NP-Za-km-z]{32,44}(?:pump|blv|bonk|bags)\\b"
+    private let evmPattern = "\\b0x[a-fA-F0-9]{40}\\b"
     
     private init() {}
     
@@ -62,15 +62,7 @@ class Web3Utils {
             if type == .solana {
                 return URL(string: "https://gmgn.ai/sol/token/\(cleanAddress)")
             } else {
-                return URL(string: "https://gmgn.ai/eth/token/\(cleanAddress)") // Default to ETH for EVM
-            }
-        case "Axiom":
-             return URL(string: "https://www.axiom.xyz/") 
-        case "Photon":
-            if type == .solana {
-                return URL(string: "https://photon-sol.tinyastro.io/en/lp/\(cleanAddress)")
-            } else {
-                return nil 
+                return URL(string: "https://gmgn.ai/eth/token/\(cleanAddress)")
             }
         default:
             return nil

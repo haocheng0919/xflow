@@ -41,8 +41,8 @@ struct Strings {
         case "MultiKeyStatus": return isZh ? "正在按顺序使用 %d 个密钥" : "Using %d keys sequentially"
         case "Please enter RapidAPI Key": return isZh ? "请输入 RapidAPI 密钥" : "Please enter RapidAPI Key"
         case "RapidAPI": return "RapidAPI"
-        case "Official": return isZh ? "官方接口" : "Official"
-        case "API Service Provider": return isZh ? "API 服务商" : "API Service Provider"
+        case "Official": return isZh ? "官方接口" : "Official X API"
+        case "API Service Provider": return isZh ? "API 服务商" : "API Service"
         
         // Menu & Panel
         case "Stop Flow": return isZh ? "停止流水" : "Stop Flow"
@@ -127,6 +127,11 @@ struct Strings {
         // Language
         case "Language": return isZh ? "语言设置" : "Language"
         
+        // Web3 Buttons
+        case "Axiom": return "Axiom"
+        case "GMGN": return "GMGN"
+        case "Memecoin CA": return isZh ? "Memecoin CA" : "Memecoin CA"
+        
         default: return key
         }
     }
@@ -143,7 +148,22 @@ extension String {
 @MainActor
 enum AppAssets {
     static let verifiedBadge: NSImage? = {
-        guard let url = Bundle.module.url(forResource: "verified_badge", withExtension: "png") else { return nil }
-        return NSImage(contentsOf: url)
+        if let url = Bundle.module.url(forResource: "verified_badge", withExtension: "webp") {
+            return NSImage(contentsOf: url)
+        }
+        if let url = Bundle.module.url(forResource: "verified_badge", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
+        return nil
+    }()
+    
+    static let gmgnLogo: NSImage? = {
+        if let url = Bundle.module.url(forResource: "gmgn_logo", withExtension: "webp") {
+            return NSImage(contentsOf: url)
+        }
+        if let url = Bundle.module.url(forResource: "gmgn_logo", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
+        return nil
     }()
 }

@@ -242,7 +242,7 @@ struct Web3Card: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Web3".localized())
+                Text("Memecoin CA".localized())
                     .font(.headline)
                 Spacer()
                 Toggle("", isOn: $settings.isCryptoEnabled)
@@ -254,8 +254,6 @@ struct Web3Card: View {
                 
                 Picker("DEX".localized(), selection: $settings.selectedDex) {
                     Text("GMGN").tag("GMGN")
-                    Text("Axiom").tag("Axiom")
-                    Text("Photon").tag("Photon")
                 }
                 .pickerStyle(.segmented)
                 
@@ -280,7 +278,7 @@ struct SourcesCard: View {
             
             Picker("API Service Provider".localized(), selection: $settings.apiType) {
                 ForEach(APIServiceType.allCases) { type in
-                    Text(type.displayName.localized()).tag(type)
+                    Text(Strings.localized(type.displayName, lang: settings.language)).tag(type)
                 }
             }
             .pickerStyle(.segmented)
@@ -460,31 +458,33 @@ struct SourcesCard: View {
                         }
                     }
                     
-                    // Home Timeline
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Toggle("Home Timeline".localized(), isOn: $settings.useHomeTimeline)
-                                .font(.system(size: 11))
-                                .foregroundColor(.gray)
-                                .controlSize(.small)
-                            Spacer()
-                            Text("Official Only".localized())
-                                .font(.system(size: 8))
-                                .foregroundColor(.blue)
-                        }
-                        AppKitTextField(placeholder: "@your_handle", text: $settings.timelineHandle)
-                            .frame(height: 22)
-                            .disabled(!settings.useHomeTimeline || settings.apiType != .official)
-                            .opacity((settings.useHomeTimeline && settings.apiType == .official) ? 1.0 : 0.5)
-                        
-                        if settings.useHomeTimeline && settings.apiType == .official && settings.timelineHandle.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Text("Please enter handles".localized())
-                                .font(.system(size: 8))
-                                .foregroundColor(.red)
-                        } else {
-                            Text("Timeline Info".localized())
-                                .font(.system(size: 10))
-                                .foregroundColor(.gray)
+                    // Home Timeline (Official Only)
+                    if settings.apiType == .official {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Toggle("Home Timeline".localized(), isOn: $settings.useHomeTimeline)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.gray)
+                                    .controlSize(.small)
+                                Spacer()
+                                Text("Official Only".localized())
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.blue)
+                            }
+                            AppKitTextField(placeholder: "@your_handle", text: $settings.timelineHandle)
+                                .frame(height: 22)
+                                .disabled(!settings.useHomeTimeline || settings.apiType != .official)
+                                .opacity((settings.useHomeTimeline && settings.apiType == .official) ? 1.0 : 0.5)
+                            
+                            if settings.useHomeTimeline && settings.apiType == .official && settings.timelineHandle.trimmingCharacters(in: .whitespaces).isEmpty {
+                                Text("Please enter handles".localized())
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.red)
+                            } else {
+                                Text("Timeline Info".localized())
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
                 }
@@ -642,6 +642,32 @@ struct HistoryCard: View {
                             .font(.system(size: 11))
                             .lineLimit(2)
                             .foregroundColor(.primary)
+                        
+                        // Web3 Buttons for History
+                        if settings.isCryptoEnabled {
+                            let addresses = Web3Utils.shared.extractAddresses(from: tweet.text)
+                            if !addresses.isEmpty {
+                                HStack(spacing: 4) {
+                                    ForEach(addresses) { address in
+                                        if address.type == .solana {
+                                            Button(action: {
+                                                if let url = Web3Utils.shared.getTradingUrl(for: address.address, type: .solana, dex: "GMGN") {
+                                                    NSWorkspace.shared.open(url)
+                                                }
+                                            }) {
+                                                if let nsImage = AppAssets.gmgnLogo {
+                                                    Image(nsImage: nsImage)
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 14, height: 14)
+                                                }
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        }
+                                    }
+                            }
+                        }
                         
                         Spacer()
                         

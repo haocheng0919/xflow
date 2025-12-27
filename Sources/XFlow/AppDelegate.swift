@@ -80,8 +80,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Check if click is on a danmaku item using the position tracker
         if let item = DanmakuPositionTracker.shared.itemAt(screenPoint: mouseLocation, in: overlayWindow) {
-            // Open the tweet in Chrome
-            DanmakuPositionTracker.shared.openTweetInChrome(item.tweet)
+            // Smart redirect: GMGN for CA tweets, Twitter for others
+            DanmakuPositionTracker.shared.openTweetOrGMGN(item.tweet)
         }
     }
     

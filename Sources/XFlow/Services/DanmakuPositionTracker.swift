@@ -51,6 +51,25 @@ class DanmakuPositionTracker: ObservableObject {
         return nil
     }
     
+    /// Open the tweet - if it has a Solana CA and crypto is enabled, open GMGN; otherwise open in Chrome
+    func openTweetOrGMGN(_ tweet: XFlowTweet) {
+        let settings = SettingsStore.shared
+        
+        // If crypto is enabled, check for Solana CA
+        if settings.isCryptoEnabled {
+            let addresses = Web3Utils.shared.extractAddresses(from: tweet.text)
+            if let firstSolana = addresses.first(where: { $0.type == .solana }),
+               let url = Web3Utils.shared.getTradingUrl(for: firstSolana.address, type: .solana, dex: "GMGN") {
+                print("[GMGN] Opening GMGN for CA: \(firstSolana.address)")
+                NSWorkspace.shared.open(url)
+                return
+            }
+        }
+        
+        // Fallback: open tweet in Chrome
+        openTweetInChrome(tweet)
+    }
+    
     /// Open the tweet in Chrome
     func openTweetInChrome(_ tweet: XFlowTweet) {
         let username = tweet.authorUsername ?? "i"

@@ -54,4 +54,13 @@ struct XFlowTweet: Identifiable, Equatable {
             return "\(diff / 86400)d"
         }
     }
+    
+    var solanaCA: String? {
+        let pattern = "[1-9A-HJ-NP-Za-km-z]{32,44}(?:pump|blv|bonk|bags)"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let nsString = text as NSString
+        let results = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsString.length))
+        
+        return results.first.map { nsString.substring(with: $0.range) }
+    }
 }

@@ -207,25 +207,53 @@ struct DanmakuCellView: View {
             
             // Web3 Logo Injection
             if settings.isCryptoEnabled && !item.cryptoAddresses.isEmpty {
-                ForEach(item.cryptoAddresses) { address in
-                    Button(action: {
-                        if let url = Web3Utils.shared.getTradingUrl(for: address.address, type: address.type, dex: settings.selectedDex) {
-                            NSWorkspace.shared.open(url)
+                HStack(spacing: 4) {
+                    ForEach(item.cryptoAddresses) { address in
+                        if address.type == .solana {
+                            // GMGN Button
+                            Button(action: {
+                                print("[GMGN] Button clicked for address: \(address.address)")
+                                if let url = Web3Utils.shared.getTradingUrl(for: address.address, type: .solana, dex: "GMGN") {
+                                    print("[GMGN] Opening URL: \(url)")
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }) {
+                                if let nsImage = AppAssets.gmgnLogo {
+                                    Image(nsImage: nsImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 20, height: 20)
+                                }
+                            }
+                            .buttonStyle(.borderless)
+                            .onTapGesture {
+                                print("[GMGN] Tap gesture on button for address: \(address.address)")
+                                if let url = Web3Utils.shared.getTradingUrl(for: address.address, type: .solana, dex: "GMGN") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                        } else {
+                            // EVM - Keep as is but with simpler label
+                            Button(action: {
+                                if let url = Web3Utils.shared.getTradingUrl(for: address.address, type: .evm, dex: settings.selectedDex) {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }) {
+                                HStack(spacing: 2) {
+                                    Text("EVM")
+                                        .font(.system(size: 8, weight: .bold))
+                                    Image(systemName: "arrow.up.forward.square.fill")
+                                        .font(.system(size: 10))
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(4)
+                            }
+                            .buttonStyle(.plain)
                         }
-                    }) {
-                        HStack(spacing: 2) {
-                            Text(address.type == .solana ? "SOL" : "EVM")
-                                .font(.system(size: 8, weight: .bold))
-                            Image(systemName: "arrow.up.forward.square.fill")
-                                .font(.system(size: 10))
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(address.type == .solana ? Color.purple : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             
@@ -260,6 +288,23 @@ struct DanmakuCellView: View {
             }
         }
         .onTapGesture {
+            print("[TAP] Danmaku tapped. isCryptoEnabled=\(settings.isCryptoEnabled), cryptoAddresses=\(item.cryptoAddresses.count)")
+            
+            // If this tweet has a detected Solana CA, open GMGN instead of Twitter
+            if settings.isCryptoEnabled {
+                print("[TAP] Crypto is enabled, checking addresses...")
+                if let firstSolana = item.cryptoAddresses.first(where: { $0.type == .solana }) {
+                    print("[TAP] Found Solana address: \(firstSolana.address)")
+                    if let url = Web3Utils.shared.getTradingUrl(for: firstSolana.address, type: .solana, dex: "GMGN") {
+                        print("[TAP] Opening GMGN URL: \(url)")
+                        NSWorkspace.shared.open(url)
+                        return
+                    }
+                } else {
+                    print("[TAP] No Solana address found in \(item.cryptoAddresses)")
+                }
+            }
+            print("[TAP] Falling back to Twitter")
             openInChrome(item.tweet)
         }
         .background(
