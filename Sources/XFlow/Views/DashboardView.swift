@@ -105,14 +105,24 @@ struct StatusCard: View {
                     Text("Error".localized())
                         .foregroundColor(.red)
                         .font(.system(size: 10))
-                } else if settings.bearerToken.isEmpty {
-                    Text("Not Configured".localized())
-                        .foregroundColor(.orange)
-                        .font(.system(size: 10))
                 } else {
-                    Text("Connected".localized())
-                        .foregroundColor(.green)
-                        .font(.system(size: 10))
+                    let isConfigured: Bool = {
+                        if settings.apiType == .rapid {
+                            return !settings.activeRapidAPIKey.isEmpty
+                        } else {
+                            return !settings.bearerToken.isEmpty
+                        }
+                    }()
+                    
+                    if !isConfigured {
+                        Text("Not Configured".localized())
+                            .foregroundColor(.orange)
+                            .font(.system(size: 10))
+                    } else {
+                        Text("Connected".localized())
+                            .foregroundColor(.green)
+                            .font(.system(size: 10))
+                    }
                 }
             }
             
@@ -706,6 +716,10 @@ struct HistoryCard: View {
                                                         .resizable()
                                                         .scaledToFit()
                                                         .frame(width: 14, height: 14)
+                                                } else {
+                                                    Text("GMGN")
+                                                        .font(.system(size: 8, weight: .bold))
+                                                        .foregroundColor(.green)
                                                 }
                                             }
                                             .buttonStyle(.plain)

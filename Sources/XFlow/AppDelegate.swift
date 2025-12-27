@@ -101,4 +101,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Show the dashboard window (handles activation and focus)
         dashboardController.showWindow(nil)
     }
+    
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showDashboard()
+        return true
+    }
 }

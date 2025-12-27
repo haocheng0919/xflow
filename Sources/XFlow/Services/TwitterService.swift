@@ -19,6 +19,8 @@ class TwitterService: ObservableObject {
     private var lastFetchedIdMap: [String: String] = [:]
     private var isFirstFetch = true
     private var currentKeyIndex = 0
+    private var seenTweetIds = Set<String>()
+    
     private init() {
         // Initialize if token exists
         let token = SettingsStore.shared.bearerToken
@@ -76,6 +78,7 @@ class TwitterService: ObservableObject {
         
         // Clear history for a fresh start
         self.tweets = []
+        self.seenTweetIds.removeAll()
         
         // Initial fetch
         Task {
@@ -112,17 +115,32 @@ class TwitterService: ObservableObject {
             let filteredNewTweets = filterTweets(allNewTweets, settings: settings)
             
             // First deduplicate the new items from this fetch (across different sources)
-            var seenIds = Set<String>()
+            var batchSeen = Set<String>()
             let uniqueNewInBatch = filteredNewTweets.filter { tweet in
-                guard !seenIds.contains(tweet.id) else { return false }
-                seenIds.insert(tweet.id)
+                guard !batchSeen.contains(tweet.id) else { return false }
+                batchSeen.insert(tweet.id)
                 return true
             }
 
-            // Then filter against existing stored tweets to avoid duplicates in the UI
+            // Then filter against history seenIds to avoid re-showing old tweets
             let uniqueNewTweets = uniqueNewInBatch.filter { newTweet in
-                !self.tweets.contains(where: { $0.id == newTweet.id })
+                !self.seenTweetIds.contains(newTweet.id)
             }
+            
+            // Mark new ones as seen
+            for tweet in uniqueNewTweets {
+                self.seenTweetIds.insert(tweet.id)
+            }
+            
+            // Cleanup seenIds if it gets too large (> 5000)
+            if self.seenTweetIds.count > 5000 {
+                self.seenTweetIds.removeAll()
+                // Re-add currently displayed tweets to avoid immediate re-show
+                for tweet in self.tweets {
+                    self.seenTweetIds.insert(tweet.id)
+                }
+            }
+
             if !uniqueNewTweets.isEmpty {
                 // Sort by creation date DESCENDING to get newest first
                 var sortedTweets = uniqueNewTweets.sorted { 

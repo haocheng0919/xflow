@@ -223,6 +223,14 @@ struct DanmakuCellView: View {
                                         .resizable()
                                         .scaledToFit()
                                         .frame(width: 20, height: 20)
+                                } else {
+                                    Text("GMGN")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background(Color.green.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(4)
                                 }
                             }
                             .buttonStyle(.borderless)

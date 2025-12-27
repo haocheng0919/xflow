@@ -169,6 +169,10 @@ enum AppAssets {
         if let url = Bundle.module.url(forResource: "gmgn_logo", withExtension: "png") {
             return NSImage(contentsOf: url)
         }
+        // Fallback to main bundle
+        if let url = Bundle.main.url(forResource: "gmgn_logo", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
         return nil
     }()
 }

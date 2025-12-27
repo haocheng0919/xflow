@@ -32,14 +32,9 @@ struct XFlowApp: App {
     }
     
     var body: some Scene {
-        // 1. The Menu Bar Extra
-        MenuBarExtra("XFlow", systemImage: "wind") {
+        // 1. The Menu Bar Extra with X-shaped icon
+        MenuBarExtra("XFlow", systemImage: "xmark") {
             MenuBarContent()
-        }
-        
-        // 2. Settings (Preferences)
-        Settings {
-            DashboardView()
         }
     }
 }

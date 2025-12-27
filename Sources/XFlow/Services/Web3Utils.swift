@@ -17,7 +17,8 @@ class Web3Utils {
     static let shared = Web3Utils()
     
     // Regex Patterns
-    private let solanaPattern = "\\b[1-9A-HJ-NP-Za-km-z]{32,44}(?:pump|blv|bonk|bags)\\b"
+    // More permissive Solana pattern to catch vanity addresses (like ending in 'pimp')
+    private let solanaPattern = "\\b[1-9A-HJ-NP-Za-km-z]{32,44}\\b"
     private let evmPattern = "\\b0x[a-fA-F0-9]{40}\\b"
     
     private init() {}

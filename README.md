@@ -1,151 +1,109 @@
-# 🌊 XFlow
+<div align="center">
+  <img src="https://raw.githubusercontent.com/haochengwang/xflow/main/AppIcon.icns" width="128" height="128" alt="XFlow Icon" />
+  <h1>XFlow</h1>
+  <p>
+    <strong>A Desktop Floating Danmaku Client for X (Twitter)</strong>
+  </p>
+  <p>
+    Turn your desktop into a real-time information stream. <br/>
+    Monitor Crypto Trends, KOLs, and News without switching windows.
+  </p>
 
-**Immersive Twitter Danmaku for Your Desktop**
+  <p>
+    <a href="#-english">English</a> • <a href="#-中文">中文</a>
+  </p>
 
-[English](#-overview) • [中文说明](#-概览)
+  <img src="assets/github_readme.gif" alt="XFlow Demo" width="800" />
+</div>
 
-![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)
-![Platform](https://img.shields.io/badge/Platform-macOS%2014%2B-lightgrey.svg)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+<hr />
 
----
+<h2 id="-english">🍃 English</h2>
 
-## 🌌 Overview
+**XFlow** is a native macOS application that displays real-time tweets as floating "Danmaku" (bullet comments) on your screen. It is designed for crypto traders, researchers, and power users who need to stay updated without interrupting their workflow.
 
-XFlow transforms your Twitter feed into a **danmaku** (弹幕) experience—tweets float across your screen like video comments. Stay updated with real-time market signals, social updates, and crypto intel without breaking your workflow.
+### ✨ Key Features
 
-> [!TIP]
-> **BYOK Model**: Bring Your Own Key. No subscription fees, no central server. Your data stays yours.
+| Feature | Description |
+| :--- | :--- |
+| **🌊 Floating Danmaku** | Tweets fly across your screen as non-intrusive overlays. Click-through by default, interactive on hover. |
+| **🚀 Multi-Source** | Aggregate data from **User Handles**, **Twitter Lists**, **Communities**, and **Search Queries**. |
+| **💎 Web3 Integration** | Auto-detects **Solana & EVM** contract addresses (CAs). One-click redirect to **GMGN**, **DexScreener**, etc. |
+| **🔑 Smart API** | Supports **Official X API** and **RapidAPI**. Built-in **Key Rotation** system to bypass rate limits automatically. |
+| **🧹 Smart Filters** | Filter by **Verified Blue Badge**, **Follower Count**, and **Deduplication** (never see the same tweet twice). |
+| **🎨 Customization** | Adjust speed, opacity, font size, and display zones (Top/Mid/Bot) to fit your setup. |
 
-## 🚀 Key Features
+### 🛠 Installation
 
-- 📡 **Multi-Source Aggregation**: User handles, Lists, Communities, Search queries, and Home Timeline
-- 🔑 **Multi-API Key Rotation**: Add multiple RapidAPI keys with automatic failover when one is exhausted
-- 🐊 **Memecoin CA Detection**: Auto-detects Solana contract addresses and one-click jumps to [GMGN.ai](https://gmgn.ai)
-- ✅ **Verified Badge Display**: Shows blue checkmarks for verified accounts
-- 🎛️ **Bento-Style Dashboard**: Beautiful grid-based control panel
-- ⚡ **Non-Intrusive**: Click-through background, hover to pause and inspect
-- 🌐 **Bilingual UI**: English and 中文 interface
+1.  Download the latest `.zip` from the [Releases](https://github.com/haochengwang/xflow/releases) page.
+2.  Unzip and drag `XFlow.app` to your **Applications** folder.
+3.  Launch the app. look for the **X** icon in your menu bar.
 
-## 🛠️ Quick Start
+### ⚙️ Configuration
 
-### Prerequisites
-- macOS 14.0 (Sonoma) or later
-- Swift 5.9+ / Xcode 15+
+XFlow supports two data sources. You can configure them in the **Dashboard**.
 
-### Installation
+#### Option A: RapidAPI (Recommended for cheap/free access)
+1.  Go to [RapidAPI](https://rapidapi.com/) and subscribe to a Twitter API service (e.g., *Twitter Data API*).
+2.  Copy your `X-RapidAPI-Key`.
+3.  In XFlow Dashboard, select **RapidAPI**.
+4.  Paste your key. You can add **multiple keys**; XFlow will automatically rotate to the next key if one is exhausted.
 
-```bash
-# Clone the repository
-git clone https://github.com/haocheng0919/xflow.git
-cd xflow
+#### Option B: Official X API
+1.  Apply for access at the [X Developer Portal](https://developer.twitter.com/).
+2.  Enter your `API Key` and `API Secret`.
+3.  (Optional) Enter `Access Token` and `Secret` for Home Timeline support.
 
-# Build and run
-swift run
-```
-
-### Environment Setup (Optional)
-Create a `.env` file to preload your API keys:
-
-```bash
-cp .env.example .env
-```
-
-```env
-# RapidAPI (Recommended)
-RAPIDAPI_KEY=your_key_here
-
-# Or Official Twitter API
-BEARER_TOKEN=your_bearer_token
-```
-
-## 🔑 Multi-Key Support
-
-XFlow supports **multiple RapidAPI keys** with automatic rotation:
-
-1. Click the **+** button next to "RapidAPI Keys" to add more keys
-2. A green dot indicates the currently active key
-3. When a key hits rate limits (429), XFlow automatically switches to the next key
-4. Remove keys with the **-** button
-
-> [!NOTE]
-> Keys are stored locally in UserDefaults and never sent to any third-party server.
-
-## 📜 License
-
-MIT License - See [LICENSE](LICENSE) for details.
+### 🧩 Web3 Features
+*   **Ca Detection**: XFlow automatically scans every tweet for contract addresses (e.g., `$PIMP`, `0x...`).
+*   **Quick Trade**: When a CA is found, a **GMGN logo** (or text) appears on the danmaku. Clicking it opens the chart directly.
+*   **Vanity Support**: Supports standard addresses and vanity addresses (e.g., ending in `pump`).
 
 ---
 
-# 🌊 XFlow
+<h2 id="-中文">🐼 中文</h2>
 
-**桌面沉浸式推特弹幕流**
+**XFlow** 是一款 macOS 桌面应用，它将 X (Twitter) 的实时推文以“弹幕”的形式悬浮展示在屏幕上。专为加密货币交易者、投研人员和极客设计，让你在专注于工作的同时不错过任何重要信息。
 
-[English](#-overview) • [中文说明](#-概览)
+### ✨ 核心功能
 
----
+| 功能 | 说明 |
+| :--- | :--- |
+| **🌊 桌面弹幕** | 推文像弹幕一样飞过屏幕。默认鼠标穿透，不影响工作；悬停即可交互。 |
+| **🚀 多源聚合** | 支持同时监控 **用户**, **列表 (Lists)**, **社群 (Communities)** 和 **搜索关键词**。 |
+| **💎 Web3 集成** | 自动识别推文中的 **Solana & EVM** 合约地址 (CA)。一键直达 **GMGN** K线图。 |
+| **🔑 智能 API** | 支持 **官方 X API** 和 **RapidAPI**。内置 **多密钥轮询**，自动处理速率限制，永不掉线。 |
+| **🧹 智能过滤** | 支持过滤 **蓝标认证**, **粉丝数量**，并且拥有智能 **去重机制**，拒绝垃圾信息。 |
+| **🎨 高度定制** | 调节速度、透明度、字体大小以及显示区域（顶部/中部/底部），完美融入你的桌面。 |
 
-## 🌌 概览
+### 🛠 安装指南
 
-XFlow 将你的 Twitter 信息流转化为**弹幕**体验——推文像视频评论一样飘过屏幕。实时获取市场信号、社交动态和加密货币情报，无需打断工作流程。
+1.  在 [Releases](https://github.com/haochengwang/xflow/releases) 页面下载最新的 `.zip` 压缩包。
+2.  解压并将 `XFlow.app` 拖入 **应用程序 (Applications)** 文件夹。
+3.  启动应用，在顶部菜单栏找到 **X** 图标即可使用。
 
-> [!TIP]
-> **自带密钥模式 (BYOK)**：无订阅费，无中心服务器。你的数据由你掌控。
+### ⚙️ 配置说明
 
-## 🚀 核心功能
+XFlow 支持两种数据源，请在 **仪表盘 (Dashboard)** 中配置。
 
-- 📡 **多源聚合**：用户账号、列表、社区、搜索关键词、主页时间线
-- 🔑 **多 API Key 轮换**：添加多个 RapidAPI 密钥，额度耗尽时自动切换
-- 🐊 **Memecoin CA 检测**：自动识别 Solana 合约地址，一键跳转 [GMGN.ai](https://gmgn.ai) 分析
-- ✅ **认证徽章显示**：蓝 V 认证账号清晰标识
-- 🎛️ **Bento 风格仪表盘**：精美的网格化控制面板
-- ⚡ **无干扰体验**：背景可穿透点击，悬停暂停查看详情
-- 🌐 **双语界面**：English / 中文 随心切换
+#### 方案 A: RapidAPI (推荐，成本低)
+1.  前往 [RapidAPI](https://rapidapi.com/) 订阅任意 Twitter API 服务。
+2.  复制你的 `X-RapidAPI-Key`。
+3.  在 XFlow 仪表盘选择 **RapidAPI**。
+4.  粘贴密钥。支持添加 **多个密钥**，当一个密钥额度耗尽时，XFlow 会自动切换到下一个。
 
-## 🛠️ 快速开始
+#### 方案 B: 官方 X API
+1.  在 [X Developer Portal](https://developer.twitter.com/) 申请开发者权限。
+2.  输入 `API Key` 和 `API Secret`。
+3.  (可选) 输入 `Access Token` 和 `Secret` 以支持获取“推荐/关注”流。
 
-### 系统要求
-- macOS 14.0 (Sonoma) 或更高版本
-- Swift 5.9+ / Xcode 15+
+### 🧩 Web3 特性
+*   **合约检测**: 自动扫描每条推文中的代币合约 (如 `$PIMP`, `0x...`)。
+*   **极速看线**: 识别到 CA 后，弹幕上会显示 **GMGN 按钮**，点击直接跳转对应 K 线。
+*   **Vanity 支持**: 完美支持各类 Solana 地址格式（如以 `pump` 结尾的地址）。
 
-### 安装
+<br/>
 
-```bash
-# 克隆仓库
-git clone https://github.com/haocheng0919/xflow.git
-cd xflow
-
-# 构建并运行
-swift run
-```
-
-### 环境配置（可选）
-创建 `.env` 文件预加载 API 密钥：
-
-```bash
-cp .env.example .env
-```
-
-```env
-# RapidAPI（推荐）
-RAPIDAPI_KEY=你的密钥
-
-# 或 Twitter 官方 API
-BEARER_TOKEN=你的 Bearer Token
-```
-
-## 🔑 多密钥支持
-
-XFlow 支持**多个 RapidAPI 密钥**自动轮换：
-
-1. 点击 "RapidAPI 密钥" 旁的 **+** 按钮添加更多密钥
-2. 绿色圆点表示当前激活的密钥
-3. 当密钥触发限流 (429)，XFlow 自动切换到下一个密钥
-4. 使用 **-** 按钮移除密钥
-
-> [!NOTE]
-> 密钥存储在本地 UserDefaults，绝不会发送到任何第三方服务器。
-
-## 📜 许可证
-
-MIT 许可证 - 详见 [LICENSE](LICENSE)
+<div align="center">
+  <p>Built with ❤️ by Haocheng</p>
+</div>
