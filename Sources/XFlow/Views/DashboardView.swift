@@ -10,6 +10,7 @@ struct DashboardView: View {
             VStack(spacing: 16) {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
+                        LanguageCard()
                         StatusCard()
                         VisualsCard()
                         FilterCard()
@@ -32,10 +33,44 @@ struct DashboardView: View {
         .padding()
         .frame(minWidth: 500, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         .background(Color(NSColor.windowBackgroundColor))
+        .onChange(of: settings.language) { oldValue, newValue in
+            updateWindowManager()
+        }
+    }
+    
+    @MainActor
+    private func updateWindowManager() {
+        if let window = NSApp.windows.first(where: { $0.title.contains("Dashboard") || $0.title.contains("仪表盘") || $0.title.contains("XFlow") }) {
+            window.title = "XFlow Dashboard".localized()
+        }
     }
 }
 
 // MARK: - Components
+
+struct LanguageCard: View {
+    @ObservedObject var settings = SettingsStore.shared
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Language".localized())
+                    .font(.headline)
+                Spacer()
+                Picker("", selection: $settings.language) {
+                    ForEach(Language.allCases) { lang in
+                        Text(lang.displayName).tag(lang.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 120)
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
 
 struct StatusCard: View {
     @ObservedObject var service = TwitterService.shared
@@ -47,7 +82,7 @@ struct StatusCard: View {
                 Circle()
                     .fill(service.isRunning ? Color.green : Color.red)
                     .frame(width: 8, height: 8)
-                Text(service.isRunning ? "Running" : "Paused")
+                Text((service.isRunning ? "Running" : "Paused").localized())
                     .font(.headline)
                 Spacer()
                 Toggle("", isOn: Binding(
@@ -63,30 +98,56 @@ struct StatusCard: View {
             Divider()
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("API Connection")
-                    .font(.caption)
+                Text("API Connection".localized())
+                    .font(.system(size: 11))
                     .foregroundColor(.gray)
                 if service.errorMessage != nil {
-                    Text("Error")
+                    Text("Error".localized())
                         .foregroundColor(.red)
-                        .font(.caption2)
+                        .font(.system(size: 10))
                 } else if settings.bearerToken.isEmpty {
-                    Text("Not Configured")
+                    Text("Not Configured".localized())
                         .foregroundColor(.orange)
-                        .font(.caption2)
+                        .font(.system(size: 10))
                 } else {
-                    Text("Connected")
+                    Text("Connected".localized())
                         .foregroundColor(.green)
-                        .font(.caption2)
+                        .font(.system(size: 10))
                 }
             }
             
             Divider()
             
-            // Update Frequency
+            // Connection Status
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Connection Status".localized())
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+                HStack {
+                    Circle()
+                        .fill(service.isRunning ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    Text(service.isRunning ? ("Running".localized() + (service.errorMessage != nil ? " (With Errors)" : "")) : "Stopped".localized())
+                        .font(.headline)
+                }
+                
+                if let error = service.errorMessage {
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if service.isRunning {
+                    Text("All systems nominal".localized())
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                
+                Divider().padding(.vertical, 4)
+                
+                // Update Frequency
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Update Frequency")
-                        .font(.caption)
+                    Text("Update Frequency".localized())
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                     HStack {
                         AppKitTextField(placeholder: "Interval", text: Binding(
@@ -107,6 +168,7 @@ struct StatusCard: View {
                         .frame(width: 120)
                     }
                 }
+            }
         }
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
@@ -119,58 +181,40 @@ struct VisualsCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Visuals")
+            Text("Visuals".localized())
                 .font(.headline)
             
             Divider()
             
-            VStack(spacing: 12) {
-                HStack {
-                    Text("Speed")
-                        .font(.caption)
-                    Slider(value: $settings.speed, in: 1...10)
-                }
+            VStack(spacing: 8) {
+                alignedSlider(label: "Speed", value: $settings.speed, in: 1...10)
+                alignedSlider(label: "Opacity", value: $settings.opacity, in: 0.1...1.0)
+                alignedSlider(label: "Size", value: $settings.fontSize, in: 12...36)
+                alignedSlider(label: "Max Width", value: $settings.maxItemWidth, in: 100...800)
                 
                 HStack {
-                    Text("Opacity")
-                        .font(.caption)
-                    Slider(value: $settings.opacity, in: 0.1...1.0)
-                }
-                
-                HStack {
-                    Text("Size")
-                        .font(.caption)
-                    Slider(value: $settings.fontSize, in: 12...36)
-                }
-                
-                HStack {
-                    Text("Max Width")
-                        .font(.caption)
-                    Slider(value: $settings.maxItemWidth, in: 100...800)
-                }
-                
-                HStack {
-                    Text("Initial Count")
-                        .font(.caption)
+                    Text("Initial Count".localized())
+                        .font(.system(size: 11))
+                        .frame(width: 80, alignment: .leading)
                     Slider(value: Binding(
                         get: { Double(settings.initialCount) },
                         set: { settings.initialCount = Int($0) }
                     ), in: 0...50, step: 1)
                     Text("\(settings.initialCount)")
-                        .font(.caption2)
+                        .font(.system(size: 10))
                         .frame(width: 20)
                 }
                 
-                Divider()
+                Divider().padding(.vertical, 4)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Display Zones")
-                        .font(.caption)
+                    Text("Display Zones".localized())
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                     HStack {
-                        Toggle("Top", isOn: $settings.showTop)
-                        Toggle("Mid", isOn: $settings.showMiddle)
-                        Toggle("Bot", isOn: $settings.showBottom)
+                        Toggle("Top".localized(), isOn: $settings.showTop)
+                        Toggle("Mid".localized(), isOn: $settings.showMiddle)
+                        Toggle("Bot".localized(), isOn: $settings.showBottom)
                     }
                     .toggleStyle(.button)
                     .controlSize(.small)
@@ -181,6 +225,15 @@ struct VisualsCard: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
     }
+    
+    private func alignedSlider(label: String, value: Binding<Double>, in range: ClosedRange<Double>) -> some View {
+        HStack {
+            Text(label.localized())
+                .font(.system(size: 11))
+                .frame(width: 80, alignment: .leading)
+            Slider(value: value, in: range)
+        }
+    }
 }
 
 struct Web3Card: View {
@@ -189,7 +242,7 @@ struct Web3Card: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Web3")
+                Text("Web3".localized())
                     .font(.headline)
                 Spacer()
                 Toggle("", isOn: $settings.isCryptoEnabled)
@@ -199,15 +252,15 @@ struct Web3Card: View {
             if settings.isCryptoEnabled {
                 Divider()
                 
-                Picker("DEX", selection: $settings.selectedDex) {
+                Picker("DEX".localized(), selection: $settings.selectedDex) {
                     Text("GMGN").tag("GMGN")
                     Text("Axiom").tag("Axiom")
                     Text("Photon").tag("Photon")
                 }
                 .pickerStyle(.segmented)
                 
-                Text("Auto-detects Solana & EVM CAs")
-                    .font(.caption2)
+                Text("Auto-detects CAs".localized())
+                    .font(.system(size: 10))
                     .foregroundColor(.gray)
             }
         }
@@ -222,90 +275,217 @@ struct SourcesCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Data Sources")
+            Text("Data Sources".localized())
                 .font(.headline)
+            
+            Picker("API Service Provider".localized(), selection: $settings.apiType) {
+                ForEach(APIServiceType.allCases) { type in
+                    Text(type.displayName.localized()).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
             
             Divider()
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    // API Key
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("RapidAPI Key")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        AppKitSecureField(placeholder: "API Key", text: $settings.rapidApiKey) {
+                    // API Key Configuration
+                    if settings.apiType == .rapid {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("RapidAPI Key".localized())
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                            AppKitSecureField(placeholder: "Key1, Key2, ...", text: $settings.rapidApiKey) {
+                            }
+                            .frame(height: 22)
+                            
+                            let keys = settings.rapidApiKey.split(separator: ",").count
+                            if keys > 1 {
+                                Text(String(format: "MultiKeyStatus".localized(), keys))
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.blue)
+                            }
                         }
-                        .frame(height: 22)
-                        .onChange(of: settings.rapidApiKey) { oldValue, newValue in
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Official API Key".localized())
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.gray)
+                                AppKitSecureField(placeholder: "bvQy...", text: $settings.officialApiKey) {
+                                }
+                                .frame(height: 20)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Official API Secret".localized())
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.gray)
+                                AppKitSecureField(placeholder: "tMBg...", text: $settings.officialApiSecret) {
+                                }
+                                .frame(height: 20)
+                            }
+                            
+                            DisclosureGroup {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Access Token".localized())
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.gray)
+                                        AppKitSecureField(placeholder: "Optional for timeline", text: $settings.officialAccessToken) {}
+                                            .frame(height: 18)
+                                    }
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Access Token Secret".localized())
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.gray)
+                                        AppKitSecureField(placeholder: "Optional for timeline", text: $settings.officialAccessTokenSecret) {}
+                                            .frame(height: 18)
+                                    }
+                                }
+                                .padding(.top, 4)
+                            } label: {
+                                Text("Timeline Auth (OAuth 1.0a)".localized())
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Text("OfficialTokenInfo".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
                         }
                     }
+                    
+                    Divider().padding(.vertical, 4)
                     
                     // User Handles
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("User Handles")
-                                .font(.caption)
+                            Toggle("User Handles".localized(), isOn: $settings.useUserHandles)
+                                .font(.system(size: 11))
                                 .foregroundColor(.gray)
+                                .controlSize(.small)
                             Spacer()
-                            Text("⚠️ 1 token per handle")
-                                .font(.caption2)
+                            Text("Token Warning".localized())
+                                .font(.system(size: 10))
                                 .foregroundColor(.orange)
                         }
                         AppKitTextField(placeholder: "@user1, @user2, @user3", text: $settings.userHandles)
                             .frame(height: 22)
-                            .onChange(of: settings.userHandles) { oldValue, newValue in
-                            }
-                        Text("Comma-separated user handles")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                            .disabled(!settings.useUserHandles)
+                            .opacity(settings.useUserHandles ? 1.0 : 0.5)
+                        
+                        if settings.useUserHandles && settings.userHandles.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("Please enter handles".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.red)
+                        } else {
+                            Text("Handle Info".localized())
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     // Twitter Lists
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("Twitter Lists (IDs)")
-                                .font(.caption)
+                            Toggle("Twitter Lists".localized(), isOn: $settings.useTwitterLists)
+                                .font(.system(size: 11))
                                 .foregroundColor(.gray)
+                                .controlSize(.small)
                             Spacer()
-                            Text("⚠️ 1 token per list")
-                                .font(.caption2)
+                            Text("List Token Warning".localized())
+                                .font(.system(size: 10))
                                 .foregroundColor(.orange)
                         }
                         AppKitTextField(placeholder: "list_id1, list_id2", text: $settings.twitterLists)
                             .frame(height: 22)
-                        Text("Enter Twitter List IDs")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                            .disabled(!settings.useTwitterLists)
+                            .opacity(settings.useTwitterLists ? 1.0 : 0.5)
+                        
+                        if settings.useTwitterLists && settings.twitterLists.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("Please enter List IDs".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.red)
+                        } else {
+                            Text("List Info".localized())
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     // Communities
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("Communities (IDs)")
-                                .font(.caption)
+                            Toggle("Communities".localized(), isOn: $settings.useCommunities)
+                                .font(.system(size: 11))
                                 .foregroundColor(.gray)
+                                .controlSize(.small)
                             Spacer()
-                            Text("⚠️ 1 token per community")
-                                .font(.caption2)
+                            Text("Comm Token Warning".localized())
+                                .font(.system(size: 10))
                                 .foregroundColor(.orange)
                         }
                         AppKitTextField(placeholder: "comm_id1, comm_id2", text: $settings.communities)
                             .frame(height: 22)
-                        Text("Enter Twitter Community IDs")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                            .disabled(!settings.useCommunities)
+                            .opacity(settings.useCommunities ? 1.0 : 0.5)
+                        
+                        if settings.useCommunities && settings.communities.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("Please enter Community IDs".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.red)
+                        } else {
+                            Text("Comm Info".localized())
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     // Search Query
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Search Query")
-                            .font(.caption)
+                        Toggle("Search Query".localized(), isOn: $settings.useSearchQuery)
+                            .font(.system(size: 11))
                             .foregroundColor(.gray)
+                            .controlSize(.small)
                         AppKitTextField(placeholder: "#crypto, bitcoin, etc.", text: $settings.searchQuery)
                             .frame(height: 22)
-                            .onChange(of: settings.searchQuery) { oldValue, newValue in
-                            }
+                            .disabled(!settings.useSearchQuery)
+                            .opacity(settings.useSearchQuery ? 1.0 : 0.5)
+                        
+                        if settings.useSearchQuery && settings.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("Please enter search query".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    // Home Timeline
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("Home Timeline".localized(), isOn: $settings.useHomeTimeline)
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                                .controlSize(.small)
+                            Spacer()
+                            Text("Official Only".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.blue)
+                        }
+                        AppKitTextField(placeholder: "@your_handle", text: $settings.timelineHandle)
+                            .frame(height: 22)
+                            .disabled(!settings.useHomeTimeline || settings.apiType != .official)
+                            .opacity((settings.useHomeTimeline && settings.apiType == .official) ? 1.0 : 0.5)
+                        
+                        if settings.useHomeTimeline && settings.apiType == .official && settings.timelineHandle.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("Please enter handles".localized())
+                                .font(.system(size: 8))
+                                .foregroundColor(.red)
+                        } else {
+                            Text("Timeline Info".localized())
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
             }
@@ -322,7 +502,7 @@ struct FilterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Advanced Filters")
+                Text("Advanced Filters".localized())
                     .font(.headline)
                 Spacer()
                 Toggle("", isOn: $settings.isFiltersEnabled)
@@ -334,11 +514,14 @@ struct FilterCard: View {
                     Divider()
                         .padding(.vertical, 4)
                     
-                    Toggle("Only Verified", isOn: $settings.filterVerified)
+                    Toggle("Only Verified".localized(), isOn: $settings.filterVerified)
                         .controlSize(.small)
                     
-                    Text("Follower Count Filter")
-                        .font(.caption2)
+                    Toggle("Force Verified Mock".localized(), isOn: $settings.forceVerified)
+                        .controlSize(.small)
+                    
+                    Text("Follower Filter".localized())
+                        .font(.system(size: 10))
                         .foregroundColor(.gray)
                     
                     HStack(spacing: 12) {
@@ -346,7 +529,7 @@ struct FilterCard: View {
                             Toggle("", isOn: $settings.filterMinFollowersEnabled)
                                 .toggleStyle(.checkbox)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Min")
+                                Text("Min".localized())
                                     .font(.system(size: 8))
                                 AppKitTextField(placeholder: "0", text: Binding(
                                     get: { String(settings.filterMinFollowers) },
@@ -361,7 +544,7 @@ struct FilterCard: View {
                             Toggle("", isOn: $settings.filterMaxFollowersEnabled)
                                 .toggleStyle(.checkbox)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Max")
+                                Text("Max".localized())
                                     .font(.system(size: 8))
                                 AppKitTextField(placeholder: "Inf", text: Binding(
                                     get: { String(settings.filterMaxFollowers) },
@@ -396,7 +579,7 @@ struct HistoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("History")
+                Text("History".localized())
                     .font(.headline)
                 Spacer()
                 Button(action: {
@@ -404,20 +587,20 @@ struct HistoryCard: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.up.arrow.down")
-                        Text(settings.historySortNewest ? "Newest First" : "Oldest First")
+                        Text((settings.historySortNewest ? "Newest First" : "Oldest First").localized())
                     }
-                    .font(.caption2)
+                    .font(.system(size: 10))
                     .foregroundColor(.blue)
                 }
                 .buttonStyle(.plain)
                 
-                Text("\(service.tweets.count) tweets")
-                    .font(.caption)
+                Text("\(service.tweets.count) \("tweets".localized())")
+                    .font(.system(size: 11))
                     .foregroundColor(.gray)
             }
             
-            Text("Click a tweet to open in Chrome")
-                .font(.caption2)
+            Text("Click Info".localized())
+                .font(.system(size: 10))
                 .foregroundColor(.blue)
             
             Divider()
@@ -427,17 +610,26 @@ struct HistoryCard: View {
                     openTweetInChrome(tweet)
                 }) {
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 2) {
                                 Text(tweet.authorName ?? (tweet.authorUsername ?? "Anon"))
-                                    .font(.caption)
+                                    .font(.system(size: 11))
                                     .bold()
                                     .lineLimit(1)
                                 
-                                if tweet.isVerified == true {
-                                    Image(systemName: "check.seal.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.system(size: 10))
+                                if tweet.isVerified == true || settings.forceVerified {
+                                    if let nsImage = AppAssets.verifiedBadge {
+                                        Image(nsImage: nsImage)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 10, height: 10)
+                                    } else {
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 10, height: 10)
+                                            .foregroundColor(.blue)
+                                    }
                                 }
                             }
                             Text(tweet.relativeTimestamp)
@@ -447,7 +639,7 @@ struct HistoryCard: View {
                         .frame(width: 100, alignment: .leading)
                         
                         Text(tweet.text)
-                            .font(.caption)
+                            .font(.system(size: 11))
                             .lineLimit(2)
                             .foregroundColor(.primary)
                         

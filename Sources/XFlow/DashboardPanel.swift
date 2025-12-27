@@ -19,7 +19,7 @@ class DashboardPanel: NSWindow {
         self.level = .normal
         self.isReleasedWhenClosed = false
         self.collectionBehavior = [.fullScreenAuxiliary]
-        self.title = "XFlow Dashboard"
+        self.title = Strings.localized("XFlow Dashboard", lang: SettingsStore.shared.language)
     }
     
     override var canBecomeKey: Bool { return true }
@@ -41,7 +41,7 @@ class DashboardWindowController: NSWindowController {
     
     convenience init() {
         let panel = DashboardPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 650),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 800),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false

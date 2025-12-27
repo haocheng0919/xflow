@@ -24,7 +24,8 @@ let package = Package(
                 .product(name: "Kingfisher", package: "Kingfisher"),
                 .product(name: "SwiftDotenv", package: "swift-dotenv")
             ],
-            path: "Sources/XFlow"
+            path: "Sources/XFlow",
+            resources: [.process("Resources")]
         )
     ]
 )

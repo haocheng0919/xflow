@@ -172,10 +172,25 @@ struct DanmakuCellView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text(item.tweet.authorUsername ?? "User")
+                HStack(alignment: .center, spacing: 4) {
+                    Text(item.tweet.authorName ?? (item.tweet.authorUsername ?? "User"))
                         .font(.system(size: settings.fontSize * 0.7, weight: .bold))
                         .foregroundColor(.white.opacity(0.8))
+                    
+                    if item.tweet.isVerified == true || settings.forceVerified {
+                        if let nsImage = AppAssets.verifiedBadge {
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 10, height: 10)
+                        } else {
+                            Image(systemName: "checkmark.seal.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 10, height: 10)
+                                .foregroundColor(.blue)
+                        }
+                    }
                     
                     Text(item.tweet.relativeTimestamp)
                         .font(.system(size: settings.fontSize * 0.5))

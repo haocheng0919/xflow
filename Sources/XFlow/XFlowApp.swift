@@ -48,7 +48,7 @@ struct MenuBarContent: View {
     @ObservedObject var twitterService = TwitterService.shared
     
     var body: some View {
-        Button(twitterService.isRunning ? "Stop Flow" : "Start Flow") {
+        Button((twitterService.isRunning ? "Stop Flow" : "Start Flow").localized()) {
             if twitterService.isRunning {
                 twitterService.stopPolling()
             } else {
@@ -62,7 +62,7 @@ struct MenuBarContent: View {
         // IMPORTANT: Dashboard Button - Brings Dashboard Window to Front
         // DO NOT MODIFY THIS LOGIC - It ensures proper window activation
         // ============================================================
-        Button("Dashboard") {
+        Button("Dashboard".localized()) {
             // Use async dispatch to ensure menu closes before window activation
             // This is required because MenuBarExtra steals focus when closing
             DispatchQueue.main.async {
@@ -75,7 +75,7 @@ struct MenuBarContent: View {
         
         Divider()
         
-        Button("Quit") {
+        Button("Quit".localized()) {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")

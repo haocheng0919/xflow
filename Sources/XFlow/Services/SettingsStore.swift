@@ -1,6 +1,13 @@
 import SwiftUI
 import Combine
 
+enum APIServiceType: String, CaseIterable, Identifiable {
+    case rapid = "RapidAPI"
+    case official = "Official"
+    var id: String { self.rawValue }
+    var displayName: String { self.rawValue }
+}
+
 @MainActor
 class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
@@ -10,6 +17,11 @@ class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(rapidApiKey, forKey: "rapidApiKey") }
     }
     @AppStorage("bearerToken") var bearerToken: String = ""
+    @AppStorage("apiServiceType") var apiType: APIServiceType = .rapid
+    @AppStorage("officialApiKey") var officialApiKey: String = ""
+    @AppStorage("officialApiSecret") var officialApiSecret: String = ""
+    @AppStorage("officialAccessToken") var officialAccessToken: String = ""
+    @AppStorage("officialAccessTokenSecret") var officialAccessTokenSecret: String = ""
     
     @AppStorage("danmakuSpeed") var speed: Double = 3.0
     @AppStorage("danmakuOpacity") var opacity: Double = 1.0
@@ -32,6 +44,8 @@ class SettingsStore: ObservableObject {
     // History
     @AppStorage("historySortNewest") var historySortNewest: Bool = true
     @AppStorage("isFiltersEnabled") var isFiltersEnabled: Bool = false
+    @AppStorage("language") var language: String = "en"
+    @AppStorage("forceVerified") var forceVerified: Bool = false
     
     // Update Frequency
     @Published var updateInterval: Double {
@@ -50,10 +64,16 @@ class SettingsStore: ObservableObject {
     }
     
     // Multi-Source Data
-    @AppStorage("userHandles") var userHandles: String = "" // comma-separated, NO DEFAULT
-    @AppStorage("twitterLists") var twitterLists: String = "" // comma-separated
-    @AppStorage("communities") var communities: String = "" // comma-separated
+    @AppStorage("userHandles") var userHandles: String = ""
+    @AppStorage("useUserHandles") var useUserHandles: Bool = true
+    @AppStorage("twitterLists") var twitterLists: String = ""
+    @AppStorage("useTwitterLists") var useTwitterLists: Bool = true
+    @AppStorage("communities") var communities: String = ""
+    @AppStorage("useCommunities") var useCommunities: Bool = true
     @AppStorage("searchQuery") var searchQuery: String = ""
+    @AppStorage("useSearchQuery") var useSearchQuery: Bool = true
+    @AppStorage("useHomeTimeline") var useHomeTimeline: Bool = false
+    @AppStorage("timelineHandle") var timelineHandle: String = ""
     
     private init() {
         let interval = UserDefaults.standard.double(forKey: "updateInterval")

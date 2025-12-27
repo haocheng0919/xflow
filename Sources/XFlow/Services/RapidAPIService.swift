@@ -1,10 +1,23 @@
 import Foundation
 
-enum RapidAPIError: Error {
+enum RapidAPIError: Error, LocalizedError {
     case invalidURL
     case noData
     case decodingError(Error)
     case apiError(String)
+    case invalidKey
+    case quotaExhausted
+    case notFound(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidKey: return "Invalid API Key"
+        case .quotaExhausted: return "API Quota Exhausted"
+        case .notFound(let resource): return "\(resource) not found"
+        case .apiError(let msg): return msg
+        default: return "Unknown API Error"
+        }
+    }
 }
 
 actor RapidAPIService {
@@ -15,9 +28,37 @@ actor RapidAPIService {
     
     private func headers(apiKey: String) -> [String: String] {
         return [
-            "X-RapidAPI-Key": apiKey,
+            "X-RapidAPI-Key": apiKey.trimmingCharacters(in: .whitespaces),
             "X-RapidAPI-Host": host
         ]
+    }
+    
+    private func performRequest<T: Decodable>(url: URL, apiKey: String) async throws -> T {
+        var request = URLRequest(url: url)
+        request.allHTTPHeaderFields = headers(apiKey: apiKey)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RapidAPIError.noData
+        }
+        
+        switch httpResponse.statusCode {
+        case 200...299:
+            do {
+                return try JSONDecoder().decode(T.self, from: data)
+            } catch {
+                throw RapidAPIError.decodingError(error)
+            }
+        case 401, 403:
+            throw RapidAPIError.invalidKey
+        case 429:
+            throw RapidAPIError.quotaExhausted
+        case 404:
+            throw RapidAPIError.notFound(url.lastPathComponent)
+        default:
+            throw RapidAPIError.apiError("HTTP \(httpResponse.statusCode)")
+        }
     }
     
     // MARK: - User Lookup
@@ -28,13 +69,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        
-        // Parse: result.data.user.result.rest_id
-        let decoded = try JSONDecoder().decode(UserRootResponse.self, from: data)
+        let decoded: UserRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return decoded.result.data.user.result.rest_id
     }
     
@@ -54,12 +89,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        
-        let decoded = try JSONDecoder().decode(TimelineRootResponse.self, from: data)
+        let decoded: TimelineRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return try parseTweets(from: decoded.result.timeline.instructions)
     }
 
@@ -164,12 +194,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let decoded = try JSONDecoder().decode(TimelineRootResponse.self, from: data)
-        
+        let decoded: TimelineRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return try parseTweets(from: decoded.result.timeline.instructions)
     }
     
@@ -183,12 +208,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let decoded = try JSONDecoder().decode(TimelineRootResponse.self, from: data)
-        
+        let decoded: TimelineRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return try parseTweets(from: decoded.result.timeline.instructions)
     }
     
@@ -203,12 +223,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let decoded = try JSONDecoder().decode(TimelineRootResponse.self, from: data)
-        
+        let decoded: TimelineRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return try parseTweets(from: decoded.result.timeline.instructions)
     }
     
@@ -223,12 +238,7 @@ actor RapidAPIService {
         
         guard let url = components.url else { throw RapidAPIError.invalidURL }
         
-        var request = URLRequest(url: url)
-        request.allHTTPHeaderFields = headers(apiKey: apiKey)
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let decoded = try JSONDecoder().decode(TimelineRootResponse.self, from: data)
-        
+        let decoded: TimelineRootResponse = try await performRequest(url: url, apiKey: apiKey)
         return try parseTweets(from: decoded.result.timeline.instructions)
     }
 }

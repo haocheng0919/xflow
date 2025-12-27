@@ -18,6 +18,7 @@ class TwitterService: ObservableObject {
     // Per-source last fetched ID to ensure incremental updates
     private var lastFetchedIdMap: [String: String] = [:]
     private var isFirstFetch = true
+    private var currentKeyIndex = 0
     private init() {
         // Initialize if token exists
         let token = SettingsStore.shared.bearerToken
@@ -38,7 +39,10 @@ class TwitterService: ObservableObject {
             
         SettingsStore.shared.$rapidApiKey
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.handleSettingsChange() }
+            .sink { [weak self] _ in 
+                self?.currentKeyIndex = 0 // Reset index when keys change
+                self?.handleSettingsChange() 
+            }
             .store(in: &cancellables)
     }
     
@@ -100,6 +104,11 @@ class TwitterService: ObservableObject {
         do {
             let allNewTweets = try await fetchSourceTweets(settings: settings)
             
+            // Handle error message reset
+            if errorMessage != nil && !allNewTweets.isEmpty {
+                errorMessage = nil
+            }
+            
             // Apply advanced filters (Blue Verified, Followers)
             let filteredNewTweets = filterTweets(allNewTweets, settings: settings)
             
@@ -115,7 +124,6 @@ class TwitterService: ObservableObject {
             let uniqueNewTweets = uniqueNewInBatch.filter { newTweet in
                 !self.tweets.contains(where: { $0.id == newTweet.id })
             }
-            
             if !uniqueNewTweets.isEmpty {
                 // Sort by creation date DESCENDING to get newest first
                 var sortedTweets = uniqueNewTweets.sorted { 
@@ -130,7 +138,7 @@ class TwitterService: ObservableObject {
                     }
                 }
                 
-                // Update lastFetchedIdMap with the newest tweet from this whole batch
+                // Update last fetchedIdMap with the newest tweet from this whole batch
                 // (Note: Per-source tracking is also implemented in fetchSourceTweets)
                 if let newest = sortedTweets.first {
                     lastFetchedIdMap["global"] = newest.id
@@ -144,34 +152,81 @@ class TwitterService: ObservableObject {
             isFirstFetch = false
             
         } catch {
+            if let apiError = error as? RapidAPIError {
+                switch apiError {
+                case .invalidKey, .quotaExhausted:
+                    // Try to rotate key and retry once if we have more keys
+                    let keys = SettingsStore.shared.rapidApiKey
+                        .split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    
+                    if currentKeyIndex + 1 < keys.count {
+                        currentKeyIndex += 1
+                        print("Rotating to API key \(currentKeyIndex + 1)/\(keys.count)")
+                        await fetchTweets() // Retry
+                        return
+                    }
+                default: break
+                }
+            }
             self.errorMessage = error.localizedDescription
         }
     }
     
     private func fetchSourceTweets(settings: SettingsStore) async throws -> [XFlowTweet] {
-        let rapidKey = settings.rapidApiKey
-        let useRapidAPI = !rapidKey.isEmpty
-        let count = isFirstFetch ? settings.initialCount : 10
-        
-        var allTweets: [XFlowTweet] = []
-        let userHandles = settings.userHandles
+        if settings.apiType == .rapid {
+            return try await fetchRapidAPITweets(settings: settings)
+        } else {
+            return try await fetchOfficialXAPITweets(settings: settings)
+        }
+    }
+    
+    private func fetchRapidAPITweets(settings: SettingsStore) async throws -> [XFlowTweet] {
+        let keys = settings.rapidApiKey
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             
+        guard !keys.isEmpty else {
+            throw RapidAPIError.apiError("Please enter RapidAPI Key".localized())
+        }
+        
+        let rapidKey = keys[min(currentKeyIndex, keys.count - 1)]
+        let count = isFirstFetch ? settings.initialCount : 10
+        var allTweets: [XFlowTweet] = []
+        
         // User Handles
-        for handle in userHandles {
-            let username = handle.hasPrefix("@") ? String(handle.dropFirst()) : handle
-            let sourceKey = "user:\(username)"
-            
-            if username == "mock" {
-                let local = try await RapidAPIService.shared.loadLocalTweets()
-                allTweets.append(contentsOf: local)
-            } else if useRapidAPI {
-                let userId = try await RapidAPIService.shared.getUserID(username: username, apiKey: rapidKey)
-                let fetched = try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey, count: count)
+        if settings.useUserHandles {
+            let userHandles = settings.userHandles
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
                 
-                // Update last fetched ID for this source
+            for handle in userHandles {
+                let username = handle.hasPrefix("@") ? String(handle.dropFirst()) : handle
+                let sourceKey = "rapid:user:\(username)"
+                
+                if username == "mock" {
+                    let local = try await RapidAPIService.shared.loadLocalTweets()
+                    allTweets.append(contentsOf: local)
+                } else {
+                    let userId = try await RapidAPIService.shared.getUserID(username: username, apiKey: rapidKey)
+                    let fetched = try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey, count: count)
+                    if let newest = fetched.first {
+                        lastFetchedIdMap[sourceKey] = newest.id
+                    }
+                    allTweets.append(contentsOf: fetched)
+                }
+            }
+        }
+        
+        // Search
+        if settings.useSearchQuery {
+            let searchQuery = settings.searchQuery.trimmingCharacters(in: .whitespaces)
+            if !searchQuery.isEmpty {
+                let sourceKey = "rapid:search:\(searchQuery)"
+                let fetched = try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: count)
                 if let newest = fetched.first {
                     lastFetchedIdMap[sourceKey] = newest.id
                 }
@@ -179,25 +234,14 @@ class TwitterService: ObservableObject {
             }
         }
         
-        // Search
-        let searchQuery = settings.searchQuery.trimmingCharacters(in: .whitespaces)
-        if !searchQuery.isEmpty && useRapidAPI {
-            let sourceKey = "search:\(searchQuery)"
-            let fetched = try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: count)
-            if let newest = fetched.first {
-                lastFetchedIdMap[sourceKey] = newest.id
-            }
-            allTweets.append(contentsOf: fetched)
-        }
-        
         // Lists
-        let listIds = settings.twitterLists
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        for listId in listIds {
-            if useRapidAPI {
-                let sourceKey = "list:\(listId)"
+        if settings.useTwitterLists {
+            let listIds = settings.twitterLists
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            for listId in listIds {
+                let sourceKey = "rapid:list:\(listId)"
                 let fetched = try await RapidAPIService.shared.getListTimeline(listId: String(listId), apiKey: rapidKey, count: count)
                 if let newest = fetched.first {
                     lastFetchedIdMap[sourceKey] = newest.id
@@ -207,14 +251,107 @@ class TwitterService: ObservableObject {
         }
         
         // Communities
-        let communityIds = settings.communities
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        for communityId in communityIds {
-            if useRapidAPI {
-                let sourceKey = "community:\(communityId)"
+        if settings.useCommunities {
+            let communityIds = settings.communities
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            for communityId in communityIds {
+                let sourceKey = "rapid:community:\(communityId)"
                 let fetched = try await RapidAPIService.shared.getCommunityTimeline(topicId: String(communityId), apiKey: rapidKey, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
+            }
+        }
+        
+        return allTweets
+    }
+
+    private func fetchOfficialXAPITweets(settings: SettingsStore) async throws -> [XFlowTweet] {
+        let apiKey = settings.officialApiKey.trimmingCharacters(in: .whitespaces)
+        let apiSecret = settings.officialApiSecret.trimmingCharacters(in: .whitespaces)
+        
+        guard !apiKey.isEmpty && !apiSecret.isEmpty else {
+            throw OfficialXAPIError.apiError("Please enter Official X API Key & Secret".localized())
+        }
+        
+        let count = isFirstFetch ? settings.initialCount : 10
+        var allTweets: [XFlowTweet] = []
+        
+        // User Handles
+        if settings.useUserHandles {
+            let userHandles = settings.userHandles
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                
+            for handle in userHandles {
+                let username = handle.hasPrefix("@") ? String(handle.dropFirst()) : handle
+                let sourceKey = "official:user:\(username)"
+                
+                let userId = try await OfficialXAPIService.shared.getUserID(username: username, apiKey: apiKey, apiSecret: apiSecret)
+                let fetched = try await OfficialXAPIService.shared.getUserTweets(userId: userId, apiKey: apiKey, apiSecret: apiSecret, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
+            }
+        }
+        
+        // Lists
+        if settings.useTwitterLists {
+            let listIds = settings.twitterLists
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            for listId in listIds {
+                let sourceKey = "official:list:\(listId)"
+                let fetched = try await OfficialXAPIService.shared.getListTweets(listId: String(listId), apiKey: apiKey, apiSecret: apiSecret, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
+            }
+        }
+        
+        // Search
+        if settings.useSearchQuery {
+            let searchQuery = settings.searchQuery.trimmingCharacters(in: .whitespaces)
+            if !searchQuery.isEmpty {
+                let sourceKey = "official:search:\(searchQuery)"
+                let fetched = try await OfficialXAPIService.shared.searchRecent(query: searchQuery, apiKey: apiKey, apiSecret: apiSecret, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
+            }
+        }
+        
+        // Home Timeline
+        if settings.useHomeTimeline {
+            let handle = settings.timelineHandle.trimmingCharacters(in: .whitespaces)
+            if !handle.isEmpty {
+                let accessToken = settings.officialAccessToken.trimmingCharacters(in: .whitespaces)
+                let accessTokenSecret = settings.officialAccessTokenSecret.trimmingCharacters(in: .whitespaces)
+                
+                if accessToken.isEmpty || accessTokenSecret.isEmpty {
+                    throw OfficialXAPIError.apiError("Home Timeline requires Access Token and Token Secret".localized())
+                }
+                
+                let username = handle.hasPrefix("@") ? String(handle.dropFirst()) : handle
+                let sourceKey = "official:timeline:\(username)"
+                
+                let userId = try await OfficialXAPIService.shared.getUserID(username: username, apiKey: apiKey, apiSecret: apiSecret)
+                let fetched = try await OfficialXAPIService.shared.getReverseChronologicalTimeline(
+                    userId: userId,
+                    apiKey: apiKey,
+                    apiSecret: apiSecret,
+                    accessToken: accessToken,
+                    accessTokenSecret: accessTokenSecret,
+                    count: count
+                )
                 if let newest = fetched.first {
                     lastFetchedIdMap[sourceKey] = newest.id
                 }
