@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/haochengwang/xflow/main/AppIcon.icns" width="128" height="128" alt="XFlow Icon" />
+  <img src="assets/icon.png" width="128" height="128" alt="XFlow Icon" />
   <h1>XFlow</h1>
   <p>
     <strong>A Desktop Floating Danmaku Client for X (Twitter)</strong>
@@ -102,4 +102,6 @@ XFlow 支持两种数据源，请在 **仪表盘 (Dashboard)** 中配置。
 *   **极速看线**: 识别到 CA 后，弹幕上会显示 **GMGN 按钮**，点击直接跳转对应 K 线。
 *   **Vanity 支持**: 完美支持各类 Solana 地址格式（如以 `pump` 结尾的地址）。
 
-<br/>
+<div align="center">
+  <p>Built with ❤️ by Haocheng</p>
+</div>
