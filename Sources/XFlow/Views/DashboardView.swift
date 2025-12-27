@@ -290,16 +290,62 @@ struct SourcesCard: View {
                     // API Key Configuration
                     if settings.apiType == .rapid {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("RapidAPI Key".localized())
-                                .font(.system(size: 11))
-                                .foregroundColor(.gray)
-                            AppKitSecureField(placeholder: "Key1, Key2, ...", text: $settings.rapidApiKey) {
+                            HStack {
+                                Text("RapidAPI Keys".localized())
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Button(action: {
+                                    settings.rapidAPIKeys.append("")
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.green)
+                                        .font(.system(size: 14))
+                                }
+                                .buttonStyle(.plain)
+                                .help("Add Key".localized())
                             }
-                            .frame(height: 22)
                             
-                            let keys = settings.rapidApiKey.split(separator: ",").count
-                            if keys > 1 {
-                                Text(String(format: "MultiKeyStatus".localized(), keys))
+                            ForEach(settings.rapidAPIKeys.indices, id: \.self) { index in
+                                HStack(spacing: 4) {
+                                    // Active indicator
+                                    if settings.currentKeyIndex == index && !settings.rapidAPIKeys[index].isEmpty {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 6, height: 6)
+                                    } else {
+                                        Circle()
+                                            .fill(Color.clear)
+                                            .frame(width: 6, height: 6)
+                                    }
+                                    
+                                    AppKitSecureField(placeholder: "Key \(index + 1)", text: Binding(
+                                        get: { settings.rapidAPIKeys[index] },
+                                        set: { settings.rapidAPIKeys[index] = $0 }
+                                    )) {}
+                                    .frame(height: 22)
+                                    
+                                    // Remove button (only if more than one key)
+                                    if settings.rapidAPIKeys.count > 1 {
+                                        Button(action: {
+                                            settings.rapidAPIKeys.remove(at: index)
+                                            if settings.currentKeyIndex >= settings.rapidAPIKeys.count {
+                                                settings.currentKeyIndex = 0
+                                            }
+                                        }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundColor(.red)
+                                                .font(.system(size: 12))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                            
+                            // Status text
+                            let validKeys = settings.rapidAPIKeys.filter { !$0.isEmpty }.count
+                            if validKeys > 1 {
+                                Text(String(format: "MultiKeyStatus".localized(), validKeys))
                                     .font(.system(size: 8))
                                     .foregroundColor(.blue)
                             }

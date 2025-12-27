@@ -1,83 +1,151 @@
-# XFlow
-[中文](README_zh.md)
+# 🌊 XFlow
 
+**Immersive Twitter Danmaku for Your Desktop**
 
-**Immersive information flow for your desktop.**
-
-XFlow is a macOS native application that brings a "Danmaku" (barrage) style ticker of Twitter/X feeds directly to your desktop. It allows you to stay updated with real-time market intelligence, social updates, and crypto signals without breaking your workflow.
+[English](#-overview) • [中文说明](#-概览)
 
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)
 ![Platform](https://img.shields.io/badge/Platform-macOS%2014%2B-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## Features
+---
 
-- **BYOK (Bring Your Own Key)**: You control your data. No subscription fees, no central server. Connect directly to Twitter via RapidAPI or official Twitter API.
-- **Non-Intrusive Danmaku**: Tweets float across your screen like a video comment stream.
-    - **Smart Hover**: Hover over a tweet to pause it and see details.
-    - **Click-Through**: Click background areas to interact with windows behind the text.
-- **Web3 Enhanced**: Automatically detects Contract Addresses (CA) for Solana and EVM chains.
-    - One-click jump to trading terminals like GMGN, Axiom, or Photon.
-- **Bento Style Dashboard**: beautiful, grid-based control panel to manage sources and settings.
-- **Highly Customizable**: Adjust speed, opacity, fonts, and screen regions (Top/Middle/Bottom).
+## 🌌 Overview
 
-## Installation
+XFlow transforms your Twitter feed into a **danmaku** (弹幕) experience—tweets float across your screen like video comments. Stay updated with real-time market signals, social updates, and crypto intel without breaking your workflow.
+
+> [!TIP]
+> **BYOK Model**: Bring Your Own Key. No subscription fees, no central server. Your data stays yours.
+
+## 🚀 Key Features
+
+- 📡 **Multi-Source Aggregation**: User handles, Lists, Communities, Search queries, and Home Timeline
+- 🔑 **Multi-API Key Rotation**: Add multiple RapidAPI keys with automatic failover when one is exhausted
+- 🐊 **Memecoin CA Detection**: Auto-detects Solana contract addresses and one-click jumps to [GMGN.ai](https://gmgn.ai)
+- ✅ **Verified Badge Display**: Shows blue checkmarks for verified accounts
+- 🎛️ **Bento-Style Dashboard**: Beautiful grid-based control panel
+- ⚡ **Non-Intrusive**: Click-through background, hover to pause and inspect
+- 🌐 **Bilingual UI**: English and 中文 interface
+
+## 🛠️ Quick Start
 
 ### Prerequisites
-- macOS 14.0 (Sonoma) or later.
-- Xcode 15+ (to build from source).
+- macOS 14.0 (Sonoma) or later
+- Swift 5.9+ / Xcode 15+
 
-### Build from Source
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/haocheng0919/xflow.git
-   cd xflow
-   ```
+### Installation
 
-2. Open the project in Xcode or build via swift:
-   ```bash
-   swift build -c release
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/haocheng0919/xflow.git
+cd xflow
 
-3. Run the application:
-   ```bash
-   swift run
-   ```
+# Build and run
+swift run
+```
 
-## Configuration
-
-XFlow uses a **Bring Your Own Key** model. You need API access to fetch tweets.
-
-### 1. Environment Setup (Recommended)
-Create a `.env` file in the root directory to preload your keys:
+### Environment Setup (Optional)
+Create a `.env` file to preload your API keys:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your keys:
 ```env
-# Option 1: RapidAPI (Recommended for cost/ease)
-RAPIDAPI_KEY=your_rapidapi_key_here
+# RapidAPI (Recommended)
+RAPIDAPI_KEY=your_key_here
 
-# Option 2: Twitter Official API
-BEARER_TOKEN=your_twitter_bearer_token_here
+# Or Official Twitter API
+BEARER_TOKEN=your_bearer_token
 ```
 
-### 2. Dashboard Setup
-Alternatively, you can enter your keys directly in the App Dashboard under 'Inputs & Keys'.
+## 🔑 Multi-Key Support
 
-## Usage
+XFlow supports **multiple RapidAPI keys** with automatic rotation:
 
-- **Dashboard**: Press the dashboard button in the menu bar or use the global shortcut (default: `,`) to open the settings grid.
-- **Sources**: Add Twitter lists, user handles, or search queries (e.g., "$BTC", "#SwiftUI").
-- **Control**: Toggle the flow Start/Stop from the menu bar.
+1. Click the **+** button next to "RapidAPI Keys" to add more keys
+2. A green dot indicates the currently active key
+3. When a key hits rate limits (429), XFlow automatically switches to the next key
+4. Remove keys with the **-** button
 
-## Security
+> [!NOTE]
+> Keys are stored locally in UserDefaults and never sent to any third-party server.
 
-- **Local Execution**: All logic runs locally on your machine.
-- **Key Safety**: API keys are stored in your local UserDefaults (or loaded from `.env` at runtime) and are never sent to any third-party server besides the API provider (Twitter/RapidAPI).
+## 📜 License
 
-## License
+MIT License - See [LICENSE](LICENSE) for details.
 
-This project is licensed under the MIT License.
+---
+
+# 🌊 XFlow
+
+**桌面沉浸式推特弹幕流**
+
+[English](#-overview) • [中文说明](#-概览)
+
+---
+
+## 🌌 概览
+
+XFlow 将你的 Twitter 信息流转化为**弹幕**体验——推文像视频评论一样飘过屏幕。实时获取市场信号、社交动态和加密货币情报，无需打断工作流程。
+
+> [!TIP]
+> **自带密钥模式 (BYOK)**：无订阅费，无中心服务器。你的数据由你掌控。
+
+## 🚀 核心功能
+
+- 📡 **多源聚合**：用户账号、列表、社区、搜索关键词、主页时间线
+- 🔑 **多 API Key 轮换**：添加多个 RapidAPI 密钥，额度耗尽时自动切换
+- 🐊 **Memecoin CA 检测**：自动识别 Solana 合约地址，一键跳转 [GMGN.ai](https://gmgn.ai) 分析
+- ✅ **认证徽章显示**：蓝 V 认证账号清晰标识
+- 🎛️ **Bento 风格仪表盘**：精美的网格化控制面板
+- ⚡ **无干扰体验**：背景可穿透点击，悬停暂停查看详情
+- 🌐 **双语界面**：English / 中文 随心切换
+
+## 🛠️ 快速开始
+
+### 系统要求
+- macOS 14.0 (Sonoma) 或更高版本
+- Swift 5.9+ / Xcode 15+
+
+### 安装
+
+```bash
+# 克隆仓库
+git clone https://github.com/haocheng0919/xflow.git
+cd xflow
+
+# 构建并运行
+swift run
+```
+
+### 环境配置（可选）
+创建 `.env` 文件预加载 API 密钥：
+
+```bash
+cp .env.example .env
+```
+
+```env
+# RapidAPI（推荐）
+RAPIDAPI_KEY=你的密钥
+
+# 或 Twitter 官方 API
+BEARER_TOKEN=你的 Bearer Token
+```
+
+## 🔑 多密钥支持
+
+XFlow 支持**多个 RapidAPI 密钥**自动轮换：
+
+1. 点击 "RapidAPI 密钥" 旁的 **+** 按钮添加更多密钥
+2. 绿色圆点表示当前激活的密钥
+3. 当密钥触发限流 (429)，XFlow 自动切换到下一个密钥
+4. 使用 **-** 按钮移除密钥
+
+> [!NOTE]
+> 密钥存储在本地 UserDefaults，绝不会发送到任何第三方服务器。
+
+## 📜 许可证
+
+MIT 许可证 - 详见 [LICENSE](LICENSE)

@@ -21,8 +21,8 @@ struct XFlowApp: App {
             }
             if let rapidKeyVal = env.values["RAPIDAPI_KEY"] {
                 if case .string(let key) = rapidKeyVal {
-                    if SettingsStore.shared.rapidApiKey.isEmpty {
-                        SettingsStore.shared.rapidApiKey = key
+                    if SettingsStore.shared.rapidAPIKeys.isEmpty || SettingsStore.shared.rapidAPIKeys.first?.isEmpty == true {
+                        SettingsStore.shared.rapidAPIKeys = [key]
                     }
                 }
             }

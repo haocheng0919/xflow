@@ -132,6 +132,11 @@ struct Strings {
         case "GMGN": return "GMGN"
         case "Memecoin CA": return isZh ? "Memecoin CA" : "Memecoin CA"
         
+        // Multi-Key UI
+        case "RapidAPI Keys": return isZh ? "RapidAPI 密钥" : "RapidAPI Keys"
+        case "Add Key": return isZh ? "添加密钥" : "Add Key"
+        case "Key exhausted, rotating...": return isZh ? "密钥已耗尽，正在切换..." : "Key exhausted, rotating..."
+        
         default: return key
         }
     }

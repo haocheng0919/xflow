@@ -37,10 +37,9 @@ class TwitterService: ObservableObject {
             .sink { [weak self] _ in self?.handleSettingsChange() }
             .store(in: &cancellables)
             
-        SettingsStore.shared.$rapidApiKey
+        SettingsStore.shared.$rapidAPIKeys
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in 
-                self?.currentKeyIndex = 0 // Reset index when keys change
                 self?.handleSettingsChange() 
             }
             .store(in: &cancellables)
@@ -57,7 +56,7 @@ class TwitterService: ObservableObject {
         guard !isRunning else { return }
         
         let settings = SettingsStore.shared
-        let hasRapidKey = !settings.rapidApiKey.isEmpty
+        let hasRapidKey = !settings.activeRapidAPIKey.isEmpty
         let hasBearer = !settings.bearerToken.isEmpty
         
         // Refresh client from settings if Bearer is available
@@ -156,14 +155,8 @@ class TwitterService: ObservableObject {
                 switch apiError {
                 case .invalidKey, .quotaExhausted:
                     // Try to rotate key and retry once if we have more keys
-                    let keys = SettingsStore.shared.rapidApiKey
-                        .split(separator: ",")
-                        .map { $0.trimmingCharacters(in: .whitespaces) }
-                        .filter { !$0.isEmpty }
-                    
-                    if currentKeyIndex + 1 < keys.count {
-                        currentKeyIndex += 1
-                        print("Rotating to API key \(currentKeyIndex + 1)/\(keys.count)")
+                    if SettingsStore.shared.rotateToNextKey() {
+                        print("[API] Key exhausted, rotated to next key")
                         await fetchTweets() // Retry
                         return
                     }
@@ -183,16 +176,11 @@ class TwitterService: ObservableObject {
     }
     
     private func fetchRapidAPITweets(settings: SettingsStore) async throws -> [XFlowTweet] {
-        let keys = settings.rapidApiKey
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            
-        guard !keys.isEmpty else {
+        let rapidKey = settings.activeRapidAPIKey
+        guard !rapidKey.isEmpty else {
             throw RapidAPIError.apiError("Please enter RapidAPI Key".localized())
         }
         
-        let rapidKey = keys[min(currentKeyIndex, keys.count - 1)]
         let count = isFirstFetch ? settings.initialCount : 10
         var allTweets: [XFlowTweet] = []
         

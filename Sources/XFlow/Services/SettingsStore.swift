@@ -12,10 +12,33 @@ enum APIServiceType: String, CaseIterable, Identifiable {
 class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     
-    // API Keys - using AppStorage to avoid Keychain password prompts
-    @Published var rapidApiKey: String {
-        didSet { UserDefaults.standard.set(rapidApiKey, forKey: "rapidApiKey") }
+    // API Keys - Multi-key support with rotation
+    @Published var rapidAPIKeys: [String] {
+        didSet {
+            let data = try? JSONEncoder().encode(rapidAPIKeys)
+            UserDefaults.standard.set(data, forKey: "rapidAPIKeys")
+        }
     }
+    @Published var currentKeyIndex: Int {
+        didSet { UserDefaults.standard.set(currentKeyIndex, forKey: "currentKeyIndex") }
+    }
+    
+    /// Get the current active API key
+    var activeRapidAPIKey: String {
+        guard !rapidAPIKeys.isEmpty else { return "" }
+        let index = min(currentKeyIndex, rapidAPIKeys.count - 1)
+        return rapidAPIKeys[index]
+    }
+    
+    /// Rotate to the next API key (called on 429 error)
+    func rotateToNextKey() -> Bool {
+        guard rapidAPIKeys.count > 1 else { return false }
+        let nextIndex = (currentKeyIndex + 1) % rapidAPIKeys.count
+        currentKeyIndex = nextIndex
+        print("[API] Rotated to key index \(nextIndex)")
+        return true
+    }
+    
     @AppStorage("bearerToken") var bearerToken: String = ""
     @AppStorage("apiServiceType") var apiType: APIServiceType = .rapid
     @AppStorage("officialApiKey") var officialApiKey: String = ""
@@ -79,7 +102,23 @@ class SettingsStore: ObservableObject {
         let interval = UserDefaults.standard.double(forKey: "updateInterval")
         self.updateInterval = interval == 0 ? 30.0 : interval
         self.updateUnit = UserDefaults.standard.string(forKey: "updateUnit") ?? "s"
-        self.rapidApiKey = UserDefaults.standard.string(forKey: "rapidApiKey") ?? ""
+        self.currentKeyIndex = UserDefaults.standard.integer(forKey: "currentKeyIndex")
+        
+        // Load rapidAPIKeys from JSON storage
+        if let data = UserDefaults.standard.data(forKey: "rapidAPIKeys"),
+           let keys = try? JSONDecoder().decode([String].self, from: data) {
+            self.rapidAPIKeys = keys
+        } else {
+            // Migration: check for old single key
+            let oldKey = UserDefaults.standard.string(forKey: "rapidApiKey") ?? ""
+            if !oldKey.isEmpty {
+                self.rapidAPIKeys = [oldKey]
+                // Clear old key after migration
+                UserDefaults.standard.removeObject(forKey: "rapidApiKey")
+            } else {
+                self.rapidAPIKeys = [""] // Start with one empty slot
+            }
+        }
         
         // Load from environment if available
         if let envToken = ProcessInfo.processInfo.environment["BEARER_TOKEN"], !envToken.isEmpty {
@@ -88,8 +127,8 @@ class SettingsStore: ObservableObject {
             }
         }
         if let envRapidKey = ProcessInfo.processInfo.environment["RAPIDAPI_KEY"], !envRapidKey.isEmpty {
-            if rapidApiKey.isEmpty {
-                rapidApiKey = envRapidKey
+            if rapidAPIKeys.isEmpty || rapidAPIKeys.first?.isEmpty == true {
+                rapidAPIKeys = [envRapidKey]
             }
         }
     }
