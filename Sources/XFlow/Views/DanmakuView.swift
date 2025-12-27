@@ -25,8 +25,10 @@ struct DanmakuView: View {
     
     // Lane management to prevent simple overlaps
     @State private var laneLastX: [Int: CGFloat] = [:]
-    private let laneHeight: CGFloat = 40
-    private let lanePadding: CGFloat = 10
+    private let laneHeight: CGFloat = 50
+    private let lanePadding: CGFloat = 20
+    private let verticalMargin: CGFloat = 50
+    private let horizontalGap: CGFloat = 150
     
     var body: some View {
         ZStack {
@@ -56,6 +58,7 @@ struct DanmakuView: View {
                 items = []
                 processedTweetIds = []
                 laneLastX = [:]
+                DanmakuPositionTracker.shared.clear()
             } else if canvasSize != .zero {
                 addNewItems(from: newTweets, in: canvasSize)
             }
@@ -80,12 +83,28 @@ struct DanmakuView: View {
         
         self.laneLastX = newLaneLastX
         
+        // Update position tracker with current positions
+        for item in items {
+            let frame = CGRect(
+                x: item.x - item.width / 2,
+                y: item.y - 25, // Approximate half height
+                width: item.width,
+                height: 50
+            )
+            DanmakuPositionTracker.shared.updatePosition(id: item.id, tweet: item.tweet, frame: frame)
+        }
+        
         // Remove items that are far off-screen
+        let removedIds = items.filter { $0.x < -2000 }.map { $0.id }
+        for id in removedIds {
+            DanmakuPositionTracker.shared.removePosition(id: id)
+        }
         items.removeAll { $0.x < -2000 } // Allow more space for long expanded tweets
     }
     
     private func addNewItems(from tweets: [XFlowTweet], in size: CGSize) {
-        let availableLanes = Int(size.height / (laneHeight + lanePadding))
+        let usableHeight = size.height - (verticalMargin * 2)
+        let availableLanes = Int(usableHeight / (laneHeight + lanePadding))
         
         for tweet in tweets {
             if !processedTweetIds.contains(tweet.id) {
@@ -105,12 +124,11 @@ struct DanmakuView: View {
                 if possibleLanes.isEmpty { possibleLanes = Array(0..<totalLanes) }
                 
                 // Find a lane that is not occupied at the entry point
-                // We want laneLastX[lane] < size.width - safety_margin
-                let safetyMargin: CGFloat = 100
-                let entryX = size.width + safetyMargin
+                // Add horizontalGap to push items further apart
+                let entryX = size.width + 100
                 
-                if let bestLane = possibleLanes.shuffled().first(where: { (laneLastX[$0] ?? 0) < size.width }) {
-                    let y = CGFloat(bestLane) * (laneHeight + lanePadding) + laneHeight / 2 + 20
+                if let bestLane = possibleLanes.shuffled().first(where: { (laneLastX[$0] ?? 0) < size.width - horizontalGap }) {
+                    let y = CGFloat(bestLane) * (laneHeight + lanePadding) + laneHeight / 2 + verticalMargin
                     
                     let addresses = Web3Utils.shared.extractAddresses(from: tweet.text)
                     
@@ -199,10 +217,7 @@ struct DanmakuCellView: View {
             // Open Tweet Button (Visible on Hover)
             if isHovering {
                 Button(action: {
-                    let username = item.tweet.authorUsername ?? "i"
-                    if let url = URL(string: "https://x.com/\(username)/status/\(item.tweet.id)") {
-                        NSWorkspace.shared.open(url)
-                    }
+                    openInChrome(item.tweet)
                 }) {
                     Image(systemName: "arrow.up.right.circle.fill")
                         .foregroundColor(.white)
@@ -228,11 +243,7 @@ struct DanmakuCellView: View {
             }
         }
         .onTapGesture {
-            // Open tweet in browser
-            let username = item.tweet.authorUsername ?? "i"
-            if let url = URL(string: "https://x.com/\(username)/status/\(item.tweet.id)") {
-                NSWorkspace.shared.open(url)
-            }
+            openInChrome(item.tweet)
         }
         .background(
             GeometryReader { proxy in
@@ -241,5 +252,19 @@ struct DanmakuCellView: View {
                     .onChange(of: proxy.size.width) { _, newValue in item.width = newValue }
             }
         )
+    }
+    
+    private func openInChrome(_ tweet: XFlowTweet) {
+        let username = tweet.authorUsername ?? "i"
+        guard let url = URL(string: "https://x.com/\(username)/status/\(tweet.id)") else { return }
+        
+        // Try to find Google Chrome
+        if let chromeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") {
+            let configuration = NSWorkspace.OpenConfiguration()
+            NSWorkspace.shared.open([url], withApplicationAt: chromeURL, configuration: configuration, completionHandler: nil)
+        } else {
+            // Fallback to default browser
+            NSWorkspace.shared.open(url)
+        }
     }
 }

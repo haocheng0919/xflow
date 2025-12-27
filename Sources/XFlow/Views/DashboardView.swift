@@ -274,7 +274,7 @@ struct SourcesCard: View {
                         }
                         AppKitTextField(placeholder: "list_id1, list_id2", text: $settings.twitterLists)
                             .frame(height: 22)
-                        Text("Not yet supported by API")
+                        Text("Enter Twitter List IDs")
                             .font(.caption2)
                             .foregroundColor(.gray)
                     }
@@ -292,7 +292,7 @@ struct SourcesCard: View {
                         }
                         AppKitTextField(placeholder: "comm_id1, comm_id2", text: $settings.communities)
                             .frame(height: 22)
-                        Text("Not yet supported by API")
+                        Text("Enter Twitter Community IDs")
                             .font(.caption2)
                             .foregroundColor(.gray)
                     }
@@ -330,29 +330,60 @@ struct HistoryCard: View {
                     .foregroundColor(.gray)
             }
             
+            Text("Click a tweet to open in Chrome")
+                .font(.caption2)
+                .foregroundColor(.blue)
+            
             Divider()
             
             List(service.tweets.prefix(20)) { tweet in
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading) {
-                        Text(tweet.authorUsername ?? "Anon")
+                Button(action: {
+                    openTweetInChrome(tweet)
+                }) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading) {
+                            Text(tweet.authorUsername ?? "Anon")
+                                .font(.caption)
+                                .bold()
+                            Text(tweet.relativeTimestamp)
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 80, alignment: .leading)
+                        
+                        Text(tweet.text)
                             .font(.caption)
-                            .bold()
-                        Text(tweet.relativeTimestamp)
-                            .font(.system(size: 8))
-                            .foregroundColor(.gray)
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
                     }
-                    .frame(width: 80, alignment: .leading)
-                    
-                    Text(tweet.text)
-                        .font(.caption)
-                        .lineLimit(2)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
             .listStyle(.plain)
         }
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
+    }
+    
+    private func openTweetInChrome(_ tweet: XFlowTweet) {
+        let username = tweet.authorUsername ?? "i"
+        guard let url = URL(string: "https://x.com/\(username)/status/\(tweet.id)") else { return }
+        
+        // Try to find Google Chrome
+        if let chromeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") {
+            let configuration = NSWorkspace.OpenConfiguration()
+            NSWorkspace.shared.open([url], withApplicationAt: chromeURL, configuration: configuration, completionHandler: nil)
+        } else {
+            // Fallback to default browser
+            NSWorkspace.shared.open(url)
+        }
     }
 }

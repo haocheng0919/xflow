@@ -1,11 +1,14 @@
 import Cocoa
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var overlayWindow: OverlayWindow!
     var hostingView: NSHostingView<ContentView>!
     var updateTimer: Timer?
     var dashboardController: DashboardWindowController?
+    var globalClickMonitor: Any?
+    var localClickMonitor: Any?
 
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -21,7 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         
-        // ALWAYS ignore mouse events - this ensures Dashboard and everything else is interactive
+        // Always ignore mouse events - we handle clicks via global monitor
         overlayWindow.ignoresMouseEvents = true
         
         hostingView = NSHostingView(rootView: ContentView())
@@ -38,72 +41,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.showDashboard()
         }
         
-        // Setup global mouse monitoring for danmaku interaction
-        setupMouseMonitoring()
+        // Setup global click monitoring for danmaku clicks
+        setupGlobalClickMonitoring()
     }
     
     func applicationWillTerminate(_ notification: Notification) {
         updateTimer?.invalidate()
-    }
-    
-    private func setupMouseMonitoring() {
-        // Use a timer to periodically check mouse position
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.checkMousePosition()
-            }
+        if let monitor = globalClickMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
         }
     }
     
-    @MainActor
-    private func checkMousePosition() {
-        // Check if Dashboard is currently the key window OR visible
-        if let dashboardWindow = dashboardController?.window {
-            if dashboardWindow.isKeyWindow || dashboardWindow.isVisible {
-                // Dashboard is active or visible, ensure overlay doesn't interfere
-                overlayWindow.ignoresMouseEvents = true
-                return
-            }
+    private func setupGlobalClickMonitoring() {
+        // Monitor global clicks (when app is not focused)
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
+            // Event monitors already run on main thread
+            self?.processClickNow()
         }
         
-        // If Dashboard is visible, we generally want to be careful, but since Dashboard is .floating (Level 3)
-        // and Overlay is Desktop (Level 1), Dashboard will capture clicks if mouse is over it.
-        // So we just need to check if mouse is over a danmaku item.
+        // Monitor local clicks (when app is focused)
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+            // Event monitors already run on main thread
+            self?.processClickNow()
+            return event
+        }
+    }
+    
+    private func processClickNow() {
+        // If Dashboard is focused, don't handle danmaku clicks
+        if let dashboardWindow = dashboardController?.window, dashboardWindow.isKeyWindow {
+            return
+        }
         
         let mouseLocation = NSEvent.mouseLocation
         
-        // Convert to overlay window coordinates
-        let windowLocation = overlayWindow.convertPoint(fromScreen: mouseLocation)
-        
-        // Check if there's a danmaku item at this position
-        if let contentView = overlayWindow.contentView {
-            let hitView = contentView.hitTest(windowLocation)
-            
-            if let view = hitView, shouldViewBeInteractive(view, in: contentView) {
-                // Mouse is over a danmaku - enable interaction
-                overlayWindow.ignoresMouseEvents = false
-            } else {
-                // Mouse is not over anything interactive - pass through
-                overlayWindow.ignoresMouseEvents = true
-            }
+        // Check if click is on a danmaku item using the position tracker
+        if let item = DanmakuPositionTracker.shared.itemAt(screenPoint: mouseLocation, in: overlayWindow) {
+            // Open the tweet in Chrome
+            DanmakuPositionTracker.shared.openTweetInChrome(item.tweet)
         }
-    }
-    
-    @MainActor
-    private func shouldViewBeInteractive(_ view: NSView, in containerView: NSView) -> Bool {
-        // If the view is the container, not interactive
-        if view == containerView { return false }
-        
-        let containerSize = containerView.frame.size
-        let viewSize = view.frame.size
-        
-        // Large views are containers, not interactive
-        if viewSize.width > containerSize.width * 0.5 && viewSize.height > containerSize.height * 0.5 {
-            return false
-        }
-        
-        // Small views are likely danmaku items - interactive
-        return true
     }
     
     // ============================================================

@@ -100,8 +100,16 @@ class TwitterService: ObservableObject {
         do {
             let allNewTweets = try await fetchSourceTweets(settings: settings)
             
-            // Filter by ID per source and globally
-            let uniqueNewTweets = allNewTweets.filter { newTweet in
+            // First deduplicate the new items from this fetch (across different sources)
+            var seenIds = Set<String>()
+            let uniqueNewInBatch = allNewTweets.filter { tweet in
+                guard !seenIds.contains(tweet.id) else { return false }
+                seenIds.insert(tweet.id)
+                return true
+            }
+
+            // Then filter against existing stored tweets
+            let uniqueNewTweets = uniqueNewInBatch.filter { newTweet in
                 !self.tweets.contains(where: { $0.id == newTweet.id })
             }
             
@@ -162,7 +170,27 @@ class TwitterService: ObservableObject {
             allTweets.append(contentsOf: try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: count))
         }
         
-        // Lists/Communities (logic omitted for brevity but follows same pattern)
+        // Lists
+        let listIds = settings.twitterLists
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        for listId in listIds {
+            if useRapidAPI {
+                allTweets.append(contentsOf: try await RapidAPIService.shared.getListTimeline(listId: String(listId), apiKey: rapidKey, count: count))
+            }
+        }
+        
+        // Communities
+        let communityIds = settings.communities
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        for communityId in communityIds {
+            if useRapidAPI {
+                allTweets.append(contentsOf: try await RapidAPIService.shared.getCommunityTimeline(topicId: String(communityId), apiKey: rapidKey, count: count))
+            }
+        }
         
         return allTweets
     }
