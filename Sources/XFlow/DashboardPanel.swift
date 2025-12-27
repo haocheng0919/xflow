@@ -41,7 +41,7 @@ class DashboardWindowController: NSWindowController {
     
     convenience init() {
         let panel = DashboardPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 650, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 650),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false

@@ -11,18 +11,22 @@ struct XFlowTweet: Identifiable, Equatable {
     var authorName: String?
     var authorUsername: String?
     var authorProfileImageUrl: URL?
+    var isVerified: Bool?
+    var followersCount: Int?
     
     init(from tweet: Tweet) {
         self.id = tweet.id
         self.text = tweet.text
         self.authorId = tweet.authorId
         self.createdAt = tweet.createdAt
+        self.isVerified = nil
+        self.followersCount = nil
     }
     
-    init(id: String, text: String, authorName: String?, authorUsername: String?, authorProfileImageUrl: String?, createdAt: Date) {
+    init(id: String, text: String, authorName: String?, authorUsername: String?, authorProfileImageUrl: String?, createdAt: Date, isVerified: Bool? = nil, followersCount: Int? = nil) {
         self.id = id
         self.text = text
-        self.authorId = nil // Not strictly needed if we have name/username
+        self.authorId = nil 
         self.authorName = authorName
         self.authorUsername = authorUsername
         if let urlString = authorProfileImageUrl {
@@ -31,6 +35,8 @@ struct XFlowTweet: Identifiable, Equatable {
             self.authorProfileImageUrl = nil
         }
         self.createdAt = createdAt
+        self.isVerified = isVerified
+        self.followersCount = followersCount
     }
     
     var relativeTimestamp: String {

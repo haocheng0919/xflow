@@ -22,6 +22,17 @@ class SettingsStore: ObservableObject {
     @AppStorage("maxItemWidth") var maxItemWidth: Double = 400.0
     @AppStorage("initialCount") var initialCount: Int = 20
     
+    // Filters
+    @AppStorage("filterVerified") var filterVerified: Bool = false
+    @AppStorage("filterMinFollowersEnabled") var filterMinFollowersEnabled: Bool = false
+    @AppStorage("filterMinFollowers") var filterMinFollowers: Int = 0
+    @AppStorage("filterMaxFollowersEnabled") var filterMaxFollowersEnabled: Bool = false
+    @AppStorage("filterMaxFollowers") var filterMaxFollowers: Int = 1000000000
+    
+    // History
+    @AppStorage("historySortNewest") var historySortNewest: Bool = true
+    @AppStorage("isFiltersEnabled") var isFiltersEnabled: Bool = false
+    
     // Update Frequency
     @Published var updateInterval: Double {
         didSet { UserDefaults.standard.set(updateInterval, forKey: "updateInterval") }

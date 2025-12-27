@@ -8,14 +8,14 @@ struct DashboardView: View {
         HStack(spacing: 16) {
             // Left Column (Status & Settings)
             VStack(spacing: 16) {
-                // Status Card
-                StatusCard()
-                
-                // Visuals Card
-                VisualsCard()
-                
-                // Web3 Card
-                Web3Card()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        StatusCard()
+                        VisualsCard()
+                        FilterCard()
+                        Web3Card()
+                    }
+                }
             }
             .frame(width: 280)
             
@@ -30,7 +30,7 @@ struct DashboardView: View {
             .frame(minWidth: 300)
         }
         .padding()
-        .frame(width: 650, height: 600)
+        .frame(minWidth: 500, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         .background(Color(NSColor.windowBackgroundColor))
     }
 }
@@ -316,8 +316,82 @@ struct SourcesCard: View {
     }
 }
 
+struct FilterCard: View {
+    @ObservedObject var settings = SettingsStore.shared
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Advanced Filters")
+                    .font(.headline)
+                Spacer()
+                Toggle("", isOn: $settings.isFiltersEnabled)
+                    .toggleStyle(.switch)
+            }
+            
+            if settings.isFiltersEnabled {
+                VStack(alignment: .leading, spacing: 10) {
+                    Divider()
+                        .padding(.vertical, 4)
+                    
+                    Toggle("Only Verified", isOn: $settings.filterVerified)
+                        .controlSize(.small)
+                    
+                    Text("Follower Count Filter")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 12) {
+                        HStack(spacing: 4) {
+                            Toggle("", isOn: $settings.filterMinFollowersEnabled)
+                                .toggleStyle(.checkbox)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Min")
+                                    .font(.system(size: 8))
+                                AppKitTextField(placeholder: "0", text: Binding(
+                                    get: { String(settings.filterMinFollowers) },
+                                    set: { if let v = Int($0) { settings.filterMinFollowers = v } }
+                                ))
+                                .frame(width: 70, height: 20)
+                                .disabled(!settings.filterMinFollowersEnabled)
+                            }
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Toggle("", isOn: $settings.filterMaxFollowersEnabled)
+                                .toggleStyle(.checkbox)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Max")
+                                    .font(.system(size: 8))
+                                AppKitTextField(placeholder: "Inf", text: Binding(
+                                    get: { String(settings.filterMaxFollowers) },
+                                    set: { if let v = Int($0) { settings.filterMaxFollowers = v } }
+                                ))
+                                .frame(width: 70, height: 20)
+                                .disabled(!settings.filterMaxFollowersEnabled)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
+
 struct HistoryCard: View {
     @ObservedObject var service = TwitterService.shared
+    @ObservedObject var settings = SettingsStore.shared
+    
+    var sortedTweets: [XFlowTweet] {
+        if settings.historySortNewest {
+            return service.tweets.reversed() // Tweets are appended oldest to newest in service
+        } else {
+            return service.tweets
+        }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -325,6 +399,18 @@ struct HistoryCard: View {
                 Text("History")
                     .font(.headline)
                 Spacer()
+                Button(action: {
+                    settings.historySortNewest.toggle()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.arrow.down")
+                        Text(settings.historySortNewest ? "Newest First" : "Oldest First")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                
                 Text("\(service.tweets.count) tweets")
                     .font(.caption)
                     .foregroundColor(.gray)
@@ -336,20 +422,29 @@ struct HistoryCard: View {
             
             Divider()
             
-            List(service.tweets.prefix(20)) { tweet in
+            List(sortedTweets.prefix(50)) { tweet in
                 Button(action: {
                     openTweetInChrome(tweet)
                 }) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading) {
-                            Text(tweet.authorUsername ?? "Anon")
-                                .font(.caption)
-                                .bold()
+                            HStack(spacing: 2) {
+                                Text(tweet.authorName ?? (tweet.authorUsername ?? "Anon"))
+                                    .font(.caption)
+                                    .bold()
+                                    .lineLimit(1)
+                                
+                                if tweet.isVerified == true {
+                                    Image(systemName: "check.seal.fill")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 10))
+                                }
+                            }
                             Text(tweet.relativeTimestamp)
                                 .font(.system(size: 8))
                                 .foregroundColor(.gray)
                         }
-                        .frame(width: 80, alignment: .leading)
+                        .frame(width: 100, alignment: .leading)
                         
                         Text(tweet.text)
                             .font(.caption)

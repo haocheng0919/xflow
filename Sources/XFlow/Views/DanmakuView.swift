@@ -160,7 +160,7 @@ struct DanmakuCellView: View {
     @State private var isHovering = false
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             if let url = item.tweet.authorProfileImageUrl {
                 AsyncImage(url: url) { image in
                     image.resizable()
@@ -171,7 +171,7 @@ struct DanmakuCellView: View {
                 .clipShape(Circle())
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(item.tweet.authorUsername ?? "User")
                         .font(.system(size: settings.fontSize * 0.7, weight: .bold))
@@ -227,12 +227,14 @@ struct DanmakuCellView: View {
                 .transition(.opacity)
             }
         }
-        .padding(8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(
-            Capsule()
-                .fill(Color.black.opacity(isHovering ? 0.8 : 0.3))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black.opacity(isHovering ? 0.8 : 0.35))
                 .overlay(
-                    Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
                 )
         )
         .scaleEffect(isHovering ? 1.05 : 1.0)

@@ -100,15 +100,18 @@ class TwitterService: ObservableObject {
         do {
             let allNewTweets = try await fetchSourceTweets(settings: settings)
             
+            // Apply advanced filters (Blue Verified, Followers)
+            let filteredNewTweets = filterTweets(allNewTweets, settings: settings)
+            
             // First deduplicate the new items from this fetch (across different sources)
             var seenIds = Set<String>()
-            let uniqueNewInBatch = allNewTweets.filter { tweet in
+            let uniqueNewInBatch = filteredNewTweets.filter { tweet in
                 guard !seenIds.contains(tweet.id) else { return false }
                 seenIds.insert(tweet.id)
                 return true
             }
 
-            // Then filter against existing stored tweets
+            // Then filter against existing stored tweets to avoid duplicates in the UI
             let uniqueNewTweets = uniqueNewInBatch.filter { newTweet in
                 !self.tweets.contains(where: { $0.id == newTweet.id })
             }
@@ -125,14 +128,17 @@ class TwitterService: ObservableObject {
                     if sortedTweets.count > limit {
                         sortedTweets = Array(sortedTweets.prefix(limit))
                     }
-                    // For danmaku display, we want to queue them oldest to newest
-                    sortedTweets = sortedTweets.reversed()
-                } else {
-                    // For incremental updates, we also queue oldest to newest
-                    sortedTweets = sortedTweets.reversed()
                 }
                 
-                self.tweets.append(contentsOf: sortedTweets)
+                // Update lastFetchedIdMap with the newest tweet from this whole batch
+                // (Note: Per-source tracking is also implemented in fetchSourceTweets)
+                if let newest = sortedTweets.first {
+                    lastFetchedIdMap["global"] = newest.id
+                }
+                
+                // For danmaku display, we want to queue them oldest to newest
+                let displayBatch = sortedTweets.reversed()
+                self.tweets.append(contentsOf: displayBatch)
             }
             
             isFirstFetch = false
@@ -156,18 +162,32 @@ class TwitterService: ObservableObject {
         // User Handles
         for handle in userHandles {
             let username = handle.hasPrefix("@") ? String(handle.dropFirst()) : handle
+            let sourceKey = "user:\(username)"
+            
             if username == "mock" {
-                allTweets.append(contentsOf: try await RapidAPIService.shared.loadLocalTweets())
+                let local = try await RapidAPIService.shared.loadLocalTweets()
+                allTweets.append(contentsOf: local)
             } else if useRapidAPI {
                 let userId = try await RapidAPIService.shared.getUserID(username: username, apiKey: rapidKey)
-                allTweets.append(contentsOf: try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey, count: count))
+                let fetched = try await RapidAPIService.shared.getUserTweets(userId: userId, apiKey: rapidKey, count: count)
+                
+                // Update last fetched ID for this source
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
             }
         }
         
         // Search
         let searchQuery = settings.searchQuery.trimmingCharacters(in: .whitespaces)
         if !searchQuery.isEmpty && useRapidAPI {
-            allTweets.append(contentsOf: try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: count))
+            let sourceKey = "search:\(searchQuery)"
+            let fetched = try await RapidAPIService.shared.searchTweets(query: searchQuery, apiKey: rapidKey, count: count)
+            if let newest = fetched.first {
+                lastFetchedIdMap[sourceKey] = newest.id
+            }
+            allTweets.append(contentsOf: fetched)
         }
         
         // Lists
@@ -177,7 +197,12 @@ class TwitterService: ObservableObject {
             .filter { !$0.isEmpty }
         for listId in listIds {
             if useRapidAPI {
-                allTweets.append(contentsOf: try await RapidAPIService.shared.getListTimeline(listId: String(listId), apiKey: rapidKey, count: count))
+                let sourceKey = "list:\(listId)"
+                let fetched = try await RapidAPIService.shared.getListTimeline(listId: String(listId), apiKey: rapidKey, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
             }
         }
         
@@ -188,10 +213,42 @@ class TwitterService: ObservableObject {
             .filter { !$0.isEmpty }
         for communityId in communityIds {
             if useRapidAPI {
-                allTweets.append(contentsOf: try await RapidAPIService.shared.getCommunityTimeline(topicId: String(communityId), apiKey: rapidKey, count: count))
+                let sourceKey = "community:\(communityId)"
+                let fetched = try await RapidAPIService.shared.getCommunityTimeline(topicId: String(communityId), apiKey: rapidKey, count: count)
+                if let newest = fetched.first {
+                    lastFetchedIdMap[sourceKey] = newest.id
+                }
+                allTweets.append(contentsOf: fetched)
             }
         }
         
         return allTweets
+    }
+    
+    private func filterTweets(_ tweets: [XFlowTweet], settings: SettingsStore) -> [XFlowTweet] {
+        // If master toggle is OFF, bypass all advanced filtering
+        if !settings.isFiltersEnabled {
+            return tweets
+        }
+        
+        return tweets.filter { tweet in
+            // Verified Filter
+            if settings.filterVerified {
+                if tweet.isVerified != true { return false }
+            }
+            
+            // Follower Count Filter
+            if settings.filterMinFollowersEnabled || settings.filterMaxFollowersEnabled {
+                if let count = tweet.followersCount {
+                    if settings.filterMinFollowersEnabled && count < settings.filterMinFollowers { return false }
+                    if settings.filterMaxFollowersEnabled && count > settings.filterMaxFollowers { return false }
+                } else {
+                    // If we have a follower requirement but no count (e.g. mock), exclude it
+                    return false
+                }
+            }
+            
+            return true
+        }
     }
 }

@@ -136,7 +136,9 @@ actor RapidAPIService {
             authorName: authorName,
             authorUsername: authorUsername,
             authorProfileImageUrl: userLegacy?.profile_image_url_https,
-            createdAt: date
+            createdAt: date,
+            isVerified: userResult.is_blue_verified,
+            followersCount: userLegacy?.followers_count
         )
     }
     
@@ -259,6 +261,7 @@ struct UserLegacy: Decodable {
     let name: String?
     let screen_name: String?
     let profile_image_url_https: String?
+    let followers_count: Int?
 }
 
 // Timeline
@@ -322,6 +325,7 @@ struct UserResult: Decodable {
     let rest_id: String?
     let legacy: UserLegacy?
     let core: UserCore?
+    let is_blue_verified: Bool?
 }
 struct UserCore: Decodable {
     let name: String?
