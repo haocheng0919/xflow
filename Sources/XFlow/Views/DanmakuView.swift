@@ -51,7 +51,12 @@ struct DanmakuView: View {
             }
         }
         .onReceive(service.$tweets) { newTweets in
-            if canvasSize != .zero {
+            if newTweets.isEmpty {
+                // Service was reset/cleared - clear view state
+                items = []
+                processedTweetIds = []
+                laneLastX = [:]
+            } else if canvasSize != .zero {
                 addNewItems(from: newTweets, in: canvasSize)
             }
         }

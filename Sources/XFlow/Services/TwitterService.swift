@@ -71,6 +71,9 @@ class TwitterService: ObservableObject {
         errorMessage = nil
         isFirstFetch = true // Reset on manual start
         
+        // Clear history for a fresh start
+        self.tweets = []
+        
         // Initial fetch
         Task {
             await fetchTweets()
@@ -103,10 +106,24 @@ class TwitterService: ObservableObject {
             }
             
             if !uniqueNewTweets.isEmpty {
-                // Sort by creation date before appending (oldest first for danmaku queueing)
-                let sortedTweets = uniqueNewTweets.sorted { 
-                    ($0.createdAt ?? Date.distantPast) < ($1.createdAt ?? Date.distantPast)
+                // Sort by creation date DESCENDING to get newest first
+                var sortedTweets = uniqueNewTweets.sorted { 
+                    ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast)
                 }
+                
+                // If it's the first fetch, respect the initialCount strictly across all sources
+                if isFirstFetch {
+                    let limit = settings.initialCount
+                    if sortedTweets.count > limit {
+                        sortedTweets = Array(sortedTweets.prefix(limit))
+                    }
+                    // For danmaku display, we want to queue them oldest to newest
+                    sortedTweets = sortedTweets.reversed()
+                } else {
+                    // For incremental updates, we also queue oldest to newest
+                    sortedTweets = sortedTweets.reversed()
+                }
+                
                 self.tweets.append(contentsOf: sortedTweets)
             }
             
